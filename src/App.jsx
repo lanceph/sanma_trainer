@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { BookOpen, Trophy, Lightbulb, Target, Library, Swords, Clock, Cpu, User, Settings, Activity, Puzzle, Layers, Shield, ShieldAlert, AlertTriangle, TrendingUp, XOctagon } from 'lucide-react';
+import { BookOpen, Trophy, Lightbulb, Target, Library, Swords, Clock, Cpu, User, Settings, Activity, Puzzle, Layers, Shield, ShieldAlert, AlertTriangle, TrendingUp, XOctagon, History } from 'lucide-react';
 
 // ============================================================================
 // [1] CONSTANTS, TYPES & HELPERS (基礎常數與輔助函數)
@@ -30,6 +30,16 @@ const getTileName = (tile) => {
 // ============================================================================
 // [2] TERMINOLOGY & TACTICS DATA (百科與戰術數據庫)
 // ============================================================================
+
+// --- 版本更新歷程資料 (Changelog Data) ---
+const CHANGELOG_DATA = [
+  { version: 'v1.5.0', date: '最新更新', changes: ['新增版本更新歷程模組', '加入版權宣告 (by zonesky)'] },
+  { version: 'v1.4.0', date: '近期更新', changes: ['整合《數據制勝》與《79博客》理論', '新增「攻防與局收支」專屬分頁，提供 11 種實戰情境解析', '移除不穩定的隨機何切題庫，轉化為靜態視覺化百科'] },
+  { version: 'v1.3.0', date: '近期更新', changes: ['UI/UX 全面升級：改為 App-like 固定視窗，解決畫面上下跳動問題', '修復玩家河牌區的牌池重疊問題 (改用 6 欄網格排列)', '戰術雷達位置優化，移至牌桌下方避免誤觸'] },
+  { version: 'v1.2.0', date: '早期更新', changes: ['重寫計分核心引擎：實裝 DFS 遞迴拆牌演算法', '支援平和、一盃口等標準面子役種精準判斷', '修復榮和時誤判「海底撈月」的 Bug，並補上「河底撈魚」判定'] },
+  { version: 'v1.1.0', date: '早期更新', changes: ['實裝「動態戰術雷達」與防守權重評估引擎', 'AI 邏輯推演可視化，清楚列出 1, 2, 3 步決策過程'] },
+  { version: 'v1.0.0', date: '初始版本', changes: ['三麻進階訓練場基礎架構建立', '實戰模擬沙盒與麻將牌 SVG 繪圖系統上線'] }
+];
 
 // --- 戰術百科 (Terminology) ---
 const TERM_CATEGORIES = [
@@ -1503,7 +1513,6 @@ const SimulationMode = () => {
         </div>
       </div>
 
-      {state.currentTurn === 0 && state.gameState === 'playing' && state.tacticalInfo && <TacticalAdvisor info={state.tacticalInfo} />}
       {state.gameState === 'finished' && <SimFinishedView state={state} actions={actions} />}
 
       <div className="bg-emerald-800 p-4 rounded-xl shadow-inner relative min-h-[500px] flex flex-col justify-between overflow-hidden">
@@ -1609,25 +1618,62 @@ const SimulationMode = () => {
           </div>
         </div>
       </div>
+
+      {/* 戰術雷達移至牌桌下方，避免畫面跳動影響出牌 */}
+      {state.currentTurn === 0 && state.gameState === 'playing' && state.tacticalInfo && <TacticalAdvisor info={state.tacticalInfo} />}
     </div>
   );
 };
+
+// ✨ 新增：版本更新歷程模組
+const ChangelogView = () => (
+  <div className="space-y-8 animate-in fade-in zoom-in-95">
+    <div className="bg-gradient-to-r from-slate-700 to-slate-900 p-6 md:p-8 rounded-2xl shadow-xl text-white">
+      <h2 className="text-2xl md:text-3xl font-black mb-3 flex items-center gap-3"><History className="text-slate-300 w-6 h-6 md:w-8 md:h-8"/> 版本更新歷程</h2>
+      <p className="text-slate-200 text-sm md:text-base leading-relaxed max-w-3xl">
+        紀錄本訓練平台的演進與功能升級。感謝您使用本系統精進三麻技術！
+      </p>
+    </div>
+    <div className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-slate-200">
+      <div className="space-y-6">
+        {CHANGELOG_DATA.map((log, idx) => (
+          <div key={idx} className="relative pl-6 sm:pl-8 border-l-2 border-slate-200 last:border-transparent pb-6 last:pb-0">
+            <div className={`absolute w-3 h-3 md:w-4 md:h-4 rounded-full -left-[7px] md:-left-[9px] top-1.5 border-2 border-white ${idx === 0 ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)]' : 'bg-slate-300'}`}></div>
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 mb-3">
+              <h3 className="text-lg md:text-xl font-black text-slate-800">{log.version}</h3>
+              <span className={`text-xs font-bold px-2.5 py-1 rounded-md w-max ${idx === 0 ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>{log.date}</span>
+            </div>
+            <ul className="list-disc list-outside ml-4 space-y-1.5 text-sm md:text-base text-slate-600">
+              {log.changes.map((change, cIdx) => (
+                <li key={cIdx} className="leading-relaxed pl-1">{change}</li>
+              ))}
+            </ul>
+          </div>
+        ))}
+      </div>
+    </div>
+  </div>
+);
 
 // ============================================================================
 // [8] MAIN APP & TABS (主程式渲染)
 // ============================================================================
 
 const AppHeader = () => (
-  <header className="bg-slate-900 text-white p-4 shadow-lg sticky top-0 z-50">
+  <header className="bg-slate-900 text-white p-4 shadow-md z-50 shrink-0 relative">
     <div className="max-w-5xl mx-auto flex justify-between items-center">
-      <h1 className="text-xl md:text-2xl font-bold flex items-center gap-2"><span className="text-2xl md:text-3xl">🀄</span> 三麻進階訓練場</h1>
-      <div className="text-xs md:text-sm text-slate-400 hidden sm:block">基於《數據制勝》與《79博客》理論</div>
+      <h1 className="text-xl md:text-2xl font-bold flex items-baseline gap-2">
+        <span className="text-2xl md:text-3xl flex items-center relative top-1">🀄</span> 
+        三麻進階訓練場
+        <span className="text-[10px] md:text-xs text-slate-400 font-normal ml-1 md:ml-2 tracking-widest block sm:inline">(by zonesky)</span>
+      </h1>
+      <div className="text-xs md:text-sm text-slate-400 hidden md:block">基於《數據制勝》與《79博客》理論</div>
     </div>
   </header>
 );
 
 const TabNavigation = ({ tabs, activeTab, setActiveTab }) => (
-  <div className="bg-white shadow-sm mb-6 z-40 overflow-x-auto">
+  <div className="bg-white shadow-sm z-40 overflow-x-auto shrink-0 relative">
     <div className="max-w-5xl mx-auto flex min-w-max">
       {tabs.map(tab => {
         const Icon = tab.icon;
@@ -1648,17 +1694,21 @@ export default function SanmaTrainer() {
   const TABS = [
     { id: 'tactics', icon: ShieldAlert, label: '攻防與局收支', color: 'orange' },
     { id: 'terminology', icon: Library, label: '術語與牌理百科', color: 'purple' },
-    { id: 'simulation', icon: Swords, label: '實戰對局模擬', color: 'blue' }
+    { id: 'simulation', icon: Swords, label: '實戰對局模擬', color: 'blue' },
+    { id: 'changelog', icon: History, label: '更新歷程', color: 'slate' }
   ];
 
   return (
-    <div className="min-h-screen bg-slate-100 font-sans text-slate-900 pb-20">
+    <div className="h-screen w-screen bg-slate-100 font-sans text-slate-900 flex flex-col overflow-hidden">
       <AppHeader />
       <TabNavigation tabs={TABS} activeTab={activeTab} setActiveTab={setActiveTab} />
-      <main className="max-w-5xl mx-auto px-2 md:px-4">
-        {activeTab === 'tactics' && <AttackDefenseTactics />}
-        {activeTab === 'terminology' && <TerminologyGlossary />}
-        {activeTab === 'simulation' && <SimulationMode />}
+      <main className="flex-1 overflow-y-auto w-full touch-pan-y">
+        <div className="max-w-5xl mx-auto px-2 md:px-4 py-6 pb-24">
+          {activeTab === 'tactics' && <AttackDefenseTactics />}
+          {activeTab === 'terminology' && <TerminologyGlossary />}
+          {activeTab === 'simulation' && <SimulationMode />}
+          {activeTab === 'changelog' && <ChangelogView />}
+        </div>
       </main>
     </div>
   );
