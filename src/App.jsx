@@ -1,5 +1,13 @@
 import React, { useState } from "react";
-import { ShieldAlert, Library, Swords, History } from "lucide-react";
+import {
+  ShieldAlert,
+  Library,
+  Swords,
+  History,
+  Volume2,
+  VolumeX,
+  Trophy,
+} from "lucide-react";
 import appIcon from "./assets/icon.svg";
 
 // 引入拆分後的各個頁面視圖
@@ -7,6 +15,7 @@ import { AttackDefenseTactics } from "./views/AttackDefenseTactics";
 import { TerminologyGlossary } from "./views/TerminologyGlossary";
 import { SimulationMode } from "./views/Simulation/SimulationMode";
 import { ChangelogView } from "./views/ChangelogView";
+import TournamentLobby from "./views/Tournament/TournamentLobby";
 
 const AppHeader = () => (
   <header className="bg-slate-900 text-white p-4 shadow-md z-50 shrink-0 relative">
@@ -73,6 +82,7 @@ export default function App() {
     },
     { id: "simulation", icon: Swords, label: "實戰對局模擬", color: "blue" },
     { id: "changelog", icon: History, label: "更新歷程", color: "slate" },
+    { id: "tournamentLobby", icon: Trophy, label: "多人PK賽", color: "red" },
   ];
 
   return (
@@ -89,6 +99,14 @@ export default function App() {
           {activeTab === "terminology" && <TerminologyGlossary />}
           {activeTab === "simulation" && <SimulationMode />}
           {activeTab === "changelog" && <ChangelogView />}
+          {activeTab === "tournamentLobby" && (
+            <TournamentLobby
+              onJoinSuccess={(tid, myPlayerId) => {
+                console.log("🎉 連線成功！", { tid, myPlayerId });
+                alert(`建立/加入成功！\n您的房間代碼: ${tid}`);
+              }}
+            />
+          )}
         </div>
       </main>
     </div>
