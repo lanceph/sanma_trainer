@@ -1,0 +1,117 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <!-- Background Gradient -->
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0f172a" />
+      <stop offset="100%" stop-color="#1e1b4b" />
+    </linearGradient>
+
+    <!-- Tile Face Gradient -->
+    <linearGradient id="tileFace" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" />
+      <stop offset="100%" stop-color="#f1f5f9" />
+    </linearGradient>
+
+    <!-- Gold PRO Badge Gradient -->
+    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fef08a" />
+      <stop offset="50%" stop-color="#f59e0b" />
+      <stop offset="100%" stop-color="#d97706" />
+    </linearGradient>
+
+    <!-- Drop Shadow for the Tile -->
+    <filter id="tileShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="16" stdDeviation="24" flood-color="#000000" flood-opacity="0.6" />
+    </filter>
+
+    <!-- Drop Shadow for the Badge -->
+    <filter id="badgeShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#000000" flood-opacity="0.5" />
+    </filter>
+
+    <!-- Tech Dot Grid Pattern -->
+    <pattern id="dotGrid" width="32" height="32" patternUnits="userSpaceOnUse">
+      <circle cx="16" cy="16" r="1.5" fill="#ffffff" opacity="0.05" />
+    </pattern>
+  </defs>
+
+  <!-- App Icon Background -->
+  <rect width="512" height="512" rx="112" fill="url(#bgGrad)" />
+  <rect width="512" height="512" fill="url(#dotGrid)" />
+
+  <!-- MAHJONG TILE -->
+  <g filter="url(#tileShadow)">
+    <!-- Tile Side/Depth (Emerald Green) -->
+    <rect x="120" y="96" width="272" height="360" rx="32" fill="#059669" />
+    
+    <!-- Tile Face (White) -->
+    <rect x="120" y="76" width="272" height="360" rx="32" fill="url(#tileFace)" />
+    
+    <!-- Tile Inner 3D Border -->
+    <rect x="124" y="80" width="264" height="352" rx="28" fill="none" stroke="#e2e8f0" stroke-width="3" />
+  </g>
+
+  <!-- DATA RADAR CHART (Etched into the tile) -->
+  <g opacity="0.8">
+    <!-- Outer Hexagon -->
+    <polygon points="256,156 342,206 342,306 256,356 170,306 170,206" fill="none" stroke="#cbd5e1" stroke-width="2" />
+    <!-- Middle Hexagon -->
+    <polygon points="256,189 313,222 313,289 256,322 199,289 199,222" fill="none" stroke="#e2e8f0" stroke-width="2" />
+    <!-- Inner Hexagon -->
+    <polygon points="256,222 284,239 284,272 256,289 228,272 228,239" fill="none" stroke="#e2e8f0" stroke-width="2" />
+    
+    <!-- Radar Web Lines -->
+    <line x1="256" y1="156" x2="256" y2="356" stroke="#cbd5e1" stroke-width="2" />
+    <line x1="170" y1="206" x2="342" y2="306" stroke="#cbd5e1" stroke-width="2" />
+    <line x1="170" y1="306" x2="342" y2="206" stroke="#cbd5e1" stroke-width="2" />
+
+    <!-- Data Fill Area (The "Stats") -->
+    <polygon points="256,170 320,230 290,290 256,340 190,270 200,210" fill="#3b82f6" opacity="0.15" stroke="#3b82f6" stroke-width="3" stroke-linejoin="round" />
+  </g>
+
+  <!-- THE 5 PINS (Dots) -->
+  <g>
+    <!-- Top Left Pin -->
+    <circle cx="172" cy="136" r="24" fill="#1e3a8a" />
+    <circle cx="166" cy="130" r="8" fill="#ffffff" opacity="0.3" />
+
+    <!-- Top Right Pin -->
+    <circle cx="340" cy="136" r="24" fill="#1e3a8a" />
+    <circle cx="334" cy="130" r="8" fill="#ffffff" opacity="0.3" />
+
+    <!-- Bottom Left Pin -->
+    <circle cx="172" cy="376" r="24" fill="#1e3a8a" />
+    <circle cx="166" cy="370" r="8" fill="#ffffff" opacity="0.3" />
+
+    <!-- Bottom Right Pin -->
+    <circle cx="340" cy="376" r="24" fill="#1e3a8a" />
+    <circle cx="334" cy="370" r="8" fill="#ffffff" opacity="0.3" />
+
+    <!-- Center Target Pin (Red 5) -->
+    <g>
+      <!-- Outer Red Base -->
+      <circle cx="256" cy="256" r="48" fill="#dc2626" />
+      <circle cx="244" cy="244" r="20" fill="#ffffff" opacity="0.2" />
+      
+      <!-- Target Rings -->
+      <circle cx="256" cy="256" r="32" fill="none" stroke="#ffffff" stroke-width="5" opacity="0.9" />
+      <circle cx="256" cy="256" r="10" fill="#ffffff" />
+      
+      <!-- Crosshairs -->
+      <line x1="256" y1="188" x2="256" y2="216" stroke="#ffffff" stroke-width="6" stroke-linecap="round" />
+      <line x1="256" y1="296" x2="256" y2="324" stroke="#ffffff" stroke-width="6" stroke-linecap="round" />
+      <line x1="188" y1="256" x2="216" y2="256" stroke="#ffffff" stroke-width="6" stroke-linecap="round" />
+      <line x1="296" y1="256" x2="324" y2="256" stroke="#ffffff" stroke-width="6" stroke-linecap="round" />
+    </g>
+  </g>
+
+  <!-- GLOSSY OVERLAY (For Premium App Feel) -->
+  <path d="M 120 76 Q 256 76 392 76 L 392 180 Q 256 260 120 180 Z" fill="#ffffff" opacity="0.15" style="mix-blend-mode: overlay;" clip-path="url(#tileClip)"/>
+
+  <!-- PRO BADGE -->
+  <g filter="url(#badgeShadow)">
+    <rect x="310" y="380" width="116" height="44" rx="22" fill="url(#goldGrad)" stroke="#fef08a" stroke-width="2" />
+    <text x="368" y="410" font-family="system-ui, -apple-system, sans-serif" font-weight="900" font-size="22" fill="#78350f" text-anchor="middle" letter-spacing="3">PRO</text>
+  </g>
+
+</svg>
