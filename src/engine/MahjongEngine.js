@@ -1,4 +1,5 @@
 import { SANMA_TILE_SET, TILE_LABELS } from "../constants/mahjong";
+import { mulberry32 } from "../utils/rng"; // 記得在檔案最上方引入
 
 export const MahjongEngine = {
   sortHand: (hand) => {
@@ -153,8 +154,38 @@ export const MahjongEngine = {
     return { isTenpai, ukeire, waitingTiles };
   },
 
-  generateRandomDeck: () => {
+  generateRandomDeck: (seedString = "") => {
     let deck = [];
+    const SANMA_TILE_SET = [
+      "1m",
+      "9m",
+      "1p",
+      "2p",
+      "3p",
+      "4p",
+      "5p",
+      "6p",
+      "7p",
+      "8p",
+      "9p",
+      "1s",
+      "2s",
+      "3s",
+      "4s",
+      "5s",
+      "6s",
+      "7s",
+      "8s",
+      "9s",
+      "1z",
+      "2z",
+      "3z",
+      "4z",
+      "5z",
+      "6z",
+      "7z",
+    ];
+
     SANMA_TILE_SET.forEach((t) => {
       if (t === "5p" || t === "5s") {
         deck.push(t);
@@ -166,8 +197,22 @@ export const MahjongEngine = {
         for (let i = 0; i < 4; i++) deck.push(t);
       }
     });
+
+    // 將字串 Seed 轉換為數字
+    let seedNum = Math.floor(Math.random() * 4294967296); // 預設隨機
+    if (seedString) {
+      seedNum = 0;
+      for (let i = 0; i < seedString.length; i++) {
+        seedNum = (Math.imul(31, seedNum) + seedString.charCodeAt(i)) | 0;
+      }
+    }
+
+    // 初始化 RNG
+    const random = mulberry32(seedNum);
+
+    // Fisher-Yates 洗牌演算法 (使用 custom random)
     for (let i = deck.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
+      const j = Math.floor(random() * (i + 1));
       [deck[i], deck[j]] = [deck[j], deck[i]];
     }
     return deck;

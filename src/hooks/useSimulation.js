@@ -7,6 +7,7 @@ export const useSimulation = () => {
     timeLimit: 0,
     pWind: "1z",
     playerWind: "1z",
+    seed: "",
   });
   const [gameState, setGameState] = useState("setup");
   const [deck, setDeck] = useState([]);
@@ -34,7 +35,8 @@ export const useSimulation = () => {
   const [lastDrawnTile, setLastDrawnTile] = useState(null);
 
   const startGame = useCallback(() => {
-    const fullDeck = MahjongEngine.generateRandomDeck();
+    // 這裡傳入 config.seed
+    const fullDeck = MahjongEngine.generateRandomDeck(config.seed);
     const pWind = config.pWind;
     const playerSeat = config.playerWind;
     const ai1Seat =
@@ -502,15 +504,10 @@ export const useSimulation = () => {
         setTimeLeft((prev) => {
           if (prev <= 1) {
             clearInterval(timerId);
-            let minScore = Infinity,
-              bestIdx = 0;
-            Object.entries(weights).forEach(([idx, score]) => {
-              if (score < minScore) {
-                minScore = score;
-                bestIdx = parseInt(idx);
-              }
-            });
-            discardTile(0, bestIdx);
+            // ★ 超時懲罰：強制自動摸切 (Tsumogiri)
+            // 打出陣列的最後一張牌 (通常是剛摸進來的那張)
+            const lastTileIndex = hands[0].length - 1;
+            discardTile(0, lastTileIndex);
             return 0;
           }
           return prev - 1;

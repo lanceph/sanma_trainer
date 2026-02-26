@@ -101,6 +101,20 @@ export const SimSetupView = ({ state, actions }) => (
           ))}
         </div>
       </div>
+      <div>
+        <label className="font-bold text-slate-700 block mb-2 text-sm">
+          🌱 錦標賽測試：強制鎖定牌山 (Seed)
+        </label>
+        <input
+          type="text"
+          placeholder="留空為隨機，輸入文字將產生固定牌山"
+          value={state.config.seed || ""}
+          onChange={(e) =>
+            actions.setConfig({ ...state.config, seed: e.target.value })
+          }
+          className="w-full bg-slate-50 border border-slate-300 px-4 py-2 rounded-lg text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none font-mono"
+        />
+      </div>
       <button
         onClick={actions.startGame}
         className="w-full py-4 bg-slate-900 text-white font-bold rounded-xl text-lg hover:bg-slate-800 shadow-lg transform hover:scale-105 transition-all mt-4"
