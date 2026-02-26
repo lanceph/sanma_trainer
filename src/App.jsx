@@ -15,7 +15,7 @@ import { AttackDefenseTactics } from "./views/AttackDefenseTactics";
 import { TerminologyGlossary } from "./views/TerminologyGlossary";
 import { SimulationMode } from "./views/Simulation/SimulationMode";
 import { ChangelogView } from "./views/ChangelogView";
-import TournamentLobby from "./views/Tournament/TournamentLobby";
+import TournamentManager from "./views/Tournament/TournamentManager";
 
 const AppHeader = () => (
   <header className="bg-slate-900 text-white p-4 shadow-md z-50 shrink-0 relative">
@@ -99,14 +99,7 @@ export default function App() {
           {activeTab === "terminology" && <TerminologyGlossary />}
           {activeTab === "simulation" && <SimulationMode />}
           {activeTab === "changelog" && <ChangelogView />}
-          {activeTab === "tournamentLobby" && (
-            <TournamentLobby
-              onJoinSuccess={(tid, myPlayerId) => {
-                console.log("🎉 連線成功！", { tid, myPlayerId });
-                alert(`建立/加入成功！\n您的房間代碼: ${tid}`);
-              }}
-            />
-          )}
+          {activeTab === "tournamentLobby" && <TournamentManager />}
         </div>
       </main>
     </div>

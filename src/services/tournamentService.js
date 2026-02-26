@@ -57,3 +57,11 @@ export const joinTournament = async (tid, playerName) => {
 
   return { tid, myPlayerId: newPlayerId };
 };
+
+// 3. 房主開始錦標賽
+export const startTournament = async (tid) => {
+  // 將房間狀態從 'lobby' 改為 'playing'
+  await update(ref(db, `tournaments/${tid}/state`), {
+    status: "playing",
+  });
+};
