@@ -1,3 +1,5 @@
+Markdown
+
 # 🀄 三麻進階訓練場 (Sanma Trainer)
 
 ![React](https://img.shields.io/badge/React-18.x-blue?style=flat-square&logo=react)
@@ -27,45 +29,41 @@
 
 * **前端框架**: [React.js](https://react.dev/) (Hooks 狀態管理)
 * **建置工具**: [Vite](https://vitejs.dev/)
-* **樣式處理**: [Tailwind CSS](https://tailwindcss.com/) (Utility-first CSS) + Custom CSS
-* **圖示庫**: [Lucide React](https://lucide.dev/)
-* **套件管理**: pnpm
+* **樣式處理**: [Tailwind CSS](https://tailwindcss.com/) + Custom CSS (隱藏捲軸等特殊處理)
+* **套件管理**: pnpm 
 * **繪圖系統**: 內部自建純 SVG 動態麻將牌繪圖系統，無外部圖片依賴。
+* **雲端開發**: 支援 `.devcontainer` 與 `.codesandbox` 快速啟動開發環境。
 
 ---
 
 ## 📂 專案架構 (Project Structure)
 
-專案基於標準的 Vite + React 結構建立：
+專案已進行深度模組化重構，採用高內聚、低耦合的目錄設計，職責劃分明確：
 
 ```text
 sanma_trainer/
-├── public/                 # 靜態資源 (Vite logo 等)
-├── src/                    # 原始碼目錄
-│   ├── assets/             # 靜態資源 (React logo 等)
-│   ├── App.jsx             # 🟢 核心應用程式：包含所有組件、狀態管理與麻將引擎
-│   ├── App.css             # 全域共用樣式
-│   ├── index.css           # Tailwind 引入與底層 CSS (包含 scrollbar-hide)
-│   └── main.jsx            # React 進入點，掛載 App 組件
-├── index.html              # 應用程式入口 HTML
-├── package.json            # npm 腳本與依賴設定
+├── .codesandbox/           # 雲端開發環境設定
+├── .devcontainer/          # VS Code DevContainers 設定檔
+├── public/                 # 靜態資源
+├── src/                    
+│   ├── assets/             # 圖片資源 (如 SVG icon)
+│   ├── components/         # 🧩 共用 UI 元件 (如 Tile 麻將牌、TacticalAdvisor 雷達面板)
+│   ├── constants/          # ⚙️ 系統常數設定 (mahjong.js)
+│   ├── data/               # 🗄️ 靜態資料庫 (changelogData.js, tacticsData.js)
+│   ├── engine/             # 🧠 核心算分與推演引擎 (MahjongEngine.js)
+│   ├── hooks/              # 🪝 自訂 React Hooks (useSimulation.js 負責 Game Loop)
+│   ├── views/              # 🖥️ 各大分頁視圖
+│   │   ├── Simulation/     # 實戰對局沙盒專屬視圖 (Setup, ActionMenu, Finished 等)
+│   │   ├── AttackDefenseTactics.jsx
+│   │   ├── ChangelogView.jsx
+│   │   └── TerminologyGlossary.jsx
+│   ├── App.jsx             # 🟢 應用程式外框、標頭與 Tab 導航切換
+│   ├── App.css / index.css # 全域樣式設定
+│   └── main.jsx            # React 掛載點
+├── eslint.config.js        # Linter 規範設定
+├── package.json            # npm 腳本
 ├── pnpm-lock.yaml          # pnpm 依賴鎖定檔
-├── vite.config.js          # Vite 伺服器與打包設定
-└── eslint.config.js        # Linter 規範設定
-
-🧠 src/App.jsx 內部模組解析
-
-目前專案採快速迭代模式，核心邏輯集中於 App.jsx，內部切分為以下區塊：
-
-    CONSTANTS & DATA: 基礎常數 (SANMA_TILE_SET)、百科資料 (TERM_CATEGORIES) 與戰術情境資料 (TACTICS_DATA)。
-
-    MAHJONG ENGINE: 遊戲底層引擎，包含向聽數與進張計算、DFS 算分系統、安全度評估以及 AI 戰術判斷。
-
-    UI COMPONENTS: 包含 SVG 麻將牌元件 (Tile, PinGraphics, SouGraphics) 與戰術雷達面板 (TacticalAdvisor)。
-
-    CUSTOM HOOKS: useSimulation 負責封裝整個對局沙盒的 State 與遊戲迴圈 (Game Loop)。
-
-    VIEWS & TABS: 負責渲染四大分頁視圖 (AttackDefenseTactics, TerminologyGlossary, SimulationMode, ChangelogView)。
+└── vite.config.js          # Vite 打包設定
 
 🚀 快速開始 (Getting Started)
 前置需求
@@ -95,9 +93,9 @@ sanma_trainer/
 
 本專案更新歷程遵循 Semantic Versioning (語意化版本控制) 的 a.b.c 原則：
 
-    a (Major): 包含不向下兼容的修改 (Breaking Change) 或核心架構的重大翻新。
+    a (Major): 包含不向下兼容的修改 (Breaking Change) 或核心架構的重大翻新 (例如：模組化重構)。
 
-    b (Minor): 新增功能 (Feature)、大幅度重構 (Refactor) 或強化現有邏輯 (Enhance)。
+    b (Minor): 新增功能 (Feature) 或強化現有邏輯 (Enhance)。
 
     c (Patch): 錯誤修復 (Bugfix) 與介面微調。
 
