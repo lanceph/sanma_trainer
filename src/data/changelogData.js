@@ -1,8 +1,23 @@
 // --- 版本更新歷程資料 (Changelog Data) ---
 export const CHANGELOG_DATA = [
   {
+    version: "v3.0.0",
+    date: "大型連線功能更新",
+    changes: [
+      "新增多人連線「錦標賽模式」，支援建立房間代碼、等候室、即時 PK 雷達與多回合賽程推進 (Feature)",
+      "實裝防卡關機制：斷線自動棄權、房主權限繼承、回合結束 30 秒自動推進賽程 (Enhance)",
+      "實裝大廳防護網：24 小時過期房間清理、單人開局防呆警告、切換分頁主動棄權攔截 (Enhance)",
+      "競技模式 UI 適配：在錦標賽中自動隱藏戰術雷達、危險度標籤與上帝視角提示，確保公平競技 (Enhance)",
+      "新增牌桌「聽牌 / 立直」常駐提示框，直接於手牌上方視覺化顯示目前聽牌牌種 (Feature)",
+      "實裝三麻流局罰符 (No-ten Bappu) 結算、一砲雙響 (Double Ron) 獨立扣分與專屬雙卡片結算畫面 (Gameplay)",
+      "實裝開槓翻新寶牌，以及立直和牌翻開「裏寶牌 (Ura Dora)」機制，完美還原日麻算番 (Gameplay)",
+      "修復立直與超時自動摸切時，因 AI 錯誤理牌導致丟錯牌，並引發聽牌提示異常消失的嚴重問題 (Bugfix)",
+      "修復 TournamentManager 中 React Hooks 條件渲染順序違規的報錯問題 (Bugfix)",
+    ],
+  },
+  {
     version: "v2.1.1",
-    date: "最新更新",
+    date: "近期更新",
     changes: [
       "修復手機版螢幕過窄導致對手手牌被截斷的問題，新增隱藏捲軸的水平滑動支援 (Bugfix)",
       "修復自家手牌在手機版會斷行且被上層危險度標籤遮蔽的問題，優化為單行流暢滑動與內部邊距 (Padding) 配置 (Bugfix)",
@@ -10,7 +25,7 @@ export const CHANGELOG_DATA = [
   },
   {
     version: "v2.1.0",
-    date: "近期更新",
+    date: "早期更新",
     changes: ["新增版本更新歷程模組 (Feature)", "加入版權宣告 (Enhance)"],
   },
   {
