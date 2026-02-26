@@ -1,5 +1,5 @@
-import React from "react";
-import { Cpu, User } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { Cpu, User, Zap, Eye } from "lucide-react";
 import Tile from "../../components/Tile";
 import TacticalAdvisor from "../../components/TacticalAdvisor";
 import { useSimulation } from "../../hooks/useSimulation";
@@ -9,8 +9,32 @@ import { SimActionMenu } from "./SimActionMenu";
 import { MahjongEngine } from "../../engine/MahjongEngine";
 import { TILE_LABELS, getTileName } from "../../constants/mahjong";
 
-export const SimulationMode = () => {
+export const SimulationMode = ({ tournamentConfig }) => {
   const { state, actions } = useSimulation();
+
+  // 🌟 新增：判斷目前是否在錦標賽模式中
+  const isTournament =
+    !!tournamentConfig || !!state.config.tournamentConfig?.tid;
+
+  // 🌟 新增：自動同步錦標賽設定，並自動開始遊戲
+  useEffect(() => {
+    // 只有在初始設定畫面 (setup) 且有錦標賽參數時才執行
+    if (tournamentConfig && state.gameState === "setup") {
+      // 1. 如果設定裡的 Seed 跟錦標賽目前的 Seed 不一樣，先更新設定
+      if (state.config.seed !== tournamentConfig.seed) {
+        actions.setConfig((prev) => ({
+          ...prev,
+          seed: tournamentConfig.seed,
+          tournamentConfig: tournamentConfig,
+          timeLimit: 15, // 強制鎖定思考時間 15 秒
+        }));
+      }
+      // 2. 確定 Seed 已經更新進 config 後，立刻自動開始遊戲！
+      else if (state.config.seed === tournamentConfig.seed) {
+        actions.startGame();
+      }
+    }
+  }, [tournamentConfig, state.gameState, state.config.seed, actions]);
 
   if (state.gameState === "setup")
     return <SimSetupView state={state} actions={actions} />;
@@ -369,8 +393,8 @@ export const SimulationMode = () => {
               {renderMelds(0, true)}
             </div>
           )}
-
-          {activeTenpaiInfo && (
+          {/* 🌟 加上 !isTournament，錦標賽不顯示進張預測 */}
+          {!isTournament && activeTenpaiInfo && (
             <div className="flex justify-center mb-6 animate-in fade-in slide-in-from-bottom-2">
               <div className="bg-emerald-900/80 border border-emerald-500 p-2 px-4 rounded-xl shadow-lg flex items-center gap-3">
                 <div className="bg-emerald-500 text-white text-xs font-black px-2 py-1 rounded">
@@ -394,13 +418,64 @@ export const SimulationMode = () => {
             </div>
           )}
 
+          {/* 🌟 新增：聽牌/立直常駐提示區 */}
+          {state.currentWaits && state.currentWaits.length > 0 && (
+            <div className="flex justify-center mb-8 relative z-30 animate-in fade-in zoom-in-95 duration-300">
+              <div
+                className={`px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-4 backdrop-blur-md border-2 ${
+                  state.isRiichi[0]
+                    ? "bg-red-950/90 border-red-500/60 shadow-[0_0_25px_rgba(239,68,68,0.3)]"
+                    : "bg-slate-900/90 border-emerald-500/60 shadow-[0_0_25px_rgba(16,185,129,0.2)]"
+                }`}
+              >
+                {/* 左側狀態文字 */}
+                <div
+                  className={`text-sm font-black flex items-center gap-1.5 ${
+                    state.isRiichi[0] ? "text-red-400" : "text-emerald-400"
+                  }`}
+                >
+                  {state.isRiichi[0] ? (
+                    <>
+                      <Zap size={18} className="fill-red-400 animate-pulse" />{" "}
+                      立直聽牌
+                    </>
+                  ) : (
+                    <>
+                      <Eye size={18} /> 默聽中
+                    </>
+                  )}
+                </div>
+
+                <div className="w-px h-8 bg-slate-600/50"></div>
+
+                {/* 右側聽牌麻將圖示 (直接使用 Tile 元件) */}
+                <div className="flex gap-1.5 items-center">
+                  {state.currentWaits.map((tile, idx) => (
+                    <div key={idx} className="relative">
+                      {/* 如果聽的牌是寶牌，上面可以多一個小光暈 */}
+                      {checkDora(tile) && (
+                        <div className="absolute -inset-1 bg-yellow-400/20 blur-sm rounded-full"></div>
+                      )}
+                      <Tile
+                        tile={tile}
+                        isDora={checkDora(tile)}
+                        small={true}
+                        className="!w-7 !h-10 md:!w-8 md:!h-11 shadow-lg"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* 外層滾動容器：用負 margin (-mt-6) 抵銷掉上移的空間 */}
           <div className="w-full overflow-x-auto scrollbar-hide -mt-6 mb-2">
             {/* 重點修復：
-    1. pt-12 與 pb-6：把空間留在「可滑動容器」的內部，讓上方標籤與牌浮起時有足夠空間，不會被切頭。
-    2. justify-start md:justify-center：手機版(空間不足)靠左排，保證滑動正常；電腦版(空間充足)維持置中。
-    3. min-w-full w-max：保證寬度至少滿版（才能置中），且能根據內容無限撐大（才能滑動）。
-  */}
+                1. pt-12 與 pb-6：把空間留在「可滑動容器」的內部，讓上方標籤與牌浮起時有足夠空間，不會被切頭。
+                2. justify-start md:justify-center：手機版(空間不足)靠左排，保證滑動正常；電腦版(空間充足)維持置中。
+                3. min-w-full w-max：保證寬度至少滿版（才能置中），且能根據內容無限撐大（才能滑動）。
+              */}
             <div className="flex justify-start md:justify-center gap-1 md:gap-2 px-4 pt-12 pb-6 min-w-full w-max">
               {state.hands[0].map((t, i) => {
                 const isSelected = state.selectedTileIndex === i;
@@ -449,7 +524,9 @@ export const SimulationMode = () => {
                 }
                 return (
                   <div key={`p-${t}-${i}`} className="relative mt-2">
-                    {wScore !== undefined &&
+                    {/* 🌟 加上 !isTournament，錦標賽不顯示權重標籤 */}
+                    {!isTournament &&
+                      wScore !== undefined &&
                       state.currentTurn === 0 &&
                       !state.actionMenu &&
                       state.gameState !== "finished" &&
@@ -485,7 +562,9 @@ export const SimulationMode = () => {
               !state.actionMenu &&
               state.gameState !== "finished" &&
               !state.isRiichi[0]
-                ? currentReason
+                ? isTournament
+                  ? "⚔️ 錦標賽對戰中！請相信自己的判斷..."
+                  : currentReason // 🌟 如果是錦標賽，顯示對戰台詞
                 : state.isRiichi[0]
                 ? "立直自動摸切中..."
                 : "等待進行中..."}
@@ -536,7 +615,9 @@ export const SimulationMode = () => {
       </div>
 
       {/* 戰術雷達移至牌桌下方，避免畫面跳動影響出牌 */}
-      {state.currentTurn === 0 &&
+      {/* 🌟 加上 !isTournament，錦標賽不顯示上帝視角的戰術雷達 */}
+      {!isTournament &&
+        state.currentTurn === 0 &&
         state.gameState === "playing" &&
         state.tacticalInfo && <TacticalAdvisor info={state.tacticalInfo} />}
     </div>

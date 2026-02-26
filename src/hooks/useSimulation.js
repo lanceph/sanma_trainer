@@ -1,5 +1,9 @@
 import { useState, useEffect, useCallback } from "react";
 import { MahjongEngine } from "../engine/MahjongEngine";
+import {
+  submitRoundScore,
+  updateLiveState,
+} from "../services/tournamentService";
 
 export const useSimulation = () => {
   const [config, setConfig] = useState({
@@ -7,6 +11,7 @@ export const useSimulation = () => {
     timeLimit: 0,
     pWind: "1z",
     playerWind: "1z",
+    seed: "",
   });
   const [gameState, setGameState] = useState("setup");
   const [deck, setDeck] = useState([]);
@@ -32,9 +37,11 @@ export const useSimulation = () => {
   const [pendingRiichi, setPendingRiichi] = useState(false);
   const [tacticalInfo, setTacticalInfo] = useState(null);
   const [lastDrawnTile, setLastDrawnTile] = useState(null);
+  const [currentWaits, setCurrentWaits] = useState([]); // 🌟 新增：用來記錄現在正在聽哪些牌
 
   const startGame = useCallback(() => {
-    const fullDeck = MahjongEngine.generateRandomDeck();
+    // 這裡傳入 config.seed
+    const fullDeck = MahjongEngine.generateRandomDeck(config.seed);
     const pWind = config.pWind;
     const playerSeat = config.playerWind;
     const ai1Seat =
@@ -44,7 +51,9 @@ export const useSimulation = () => {
     const h0 = MahjongEngine.sortHand(fullDeck.splice(0, 13));
     const h1 = MahjongEngine.sortHand(fullDeck.splice(0, 13));
     const h2 = MahjongEngine.sortHand(fullDeck.splice(0, 13));
+    // 🌟 修改這裡：抽出第一張寶牌與裏寶牌指示牌
     const dora = fullDeck.pop();
+    const ura = fullDeck.pop();
 
     setDeck(fullDeck);
     setHands([h0, h1, h2]);
@@ -56,12 +65,14 @@ export const useSimulation = () => {
     setPendingRiichi(false);
     setTacticalInfo(null);
     setLastDrawnTile(null);
+    setCurrentWaits([]); // 🌟 新增：新局開始時清空聽牌
     setContext({
       pWind,
       sWind: playerSeat,
       ai1Wind: ai1Seat,
       ai2Wind: ai2Seat,
-      doraInd: dora,
+      doraInd: [dora], // 🌟 改為陣列
+      uraDoraInd: [ura], // 🌟 新增裏寶牌陣列
     });
     setCurrentTurn(0);
     setWinner(null);
@@ -109,9 +120,63 @@ export const useSimulation = () => {
     currentIsRiichi,
     ctxOverride = null
   ) => {
+    // ==========================================
+    // 🌟 Phase 7: 處理流局 (Draw) 與 罰符結算
+    // ==========================================
     if (currentDeck.length === 0) {
       setGameState("finished");
-      setWinner({ type: "draw" });
+
+      // 1. 利用引擎分析三家的聽牌狀態
+      const tenpaiStatus = [false, false, false];
+      for (let i = 0; i < 3; i++) {
+        // 如果已經立直，必定是聽牌狀態；如果沒立直，讓引擎偷偷算一下
+        if (currentIsRiichi[i]) {
+          tenpaiStatus[i] = true;
+        } else {
+          const mockCtx = {
+            rivers: currentRivers,
+            openMelds: currentOpenMelds,
+            kitas: currentKitas,
+            openMeldCount: currentOpenMelds[i].length,
+          };
+          const analysis = MahjongEngine.analyzeDiscard(
+            currentHands[i],
+            null,
+            mockCtx,
+            "attack",
+            [],
+            currentOpenMelds[i].length
+          );
+          tenpaiStatus[i] = analysis.isTenpai;
+        }
+      }
+
+      // 2. 計算三麻流局罰符 (總池 2000 點)
+      const tenpaiCount = tenpaiStatus.filter((t) => t).length;
+      let bappuScore = 0; // 玩家 (0號位) 的罰符得失分
+
+      if (tenpaiCount === 1 || tenpaiCount === 2) {
+        if (tenpaiStatus[0]) {
+          // 玩家【有】聽牌：
+          // 若 1 人聽牌，拿 2000 (另外兩家各扣 1000)
+          // 若 2 人聽牌，拿 1000 (沒聽的扣 2000)
+          bappuScore = tenpaiCount === 1 ? 2000 : 1000;
+        } else {
+          // 玩家【沒】聽牌：
+          // 若 1 人聽牌，扣 1000 給他
+          // 若 2 人聽牌，扣 2000 (各給 1000)
+          bappuScore = tenpaiCount === 1 ? -1000 : -2000;
+        }
+      }
+
+      // 將結果存入 winner state (未來可以讓 UI 顯示「流局聽牌/未聽牌」)
+      setWinner({ type: "draw", bappuScore, tenpaiStatus });
+
+      // 3. 上傳錦標賽流局分數
+      if (config.tournamentConfig?.tid) {
+        const { tid, myPlayerId, currentRound } = config.tournamentConfig;
+        submitRoundScore(tid, myPlayerId, currentRound, bappuScore);
+      }
       return;
     }
     let d = [...currentDeck],
@@ -123,8 +188,13 @@ export const useSimulation = () => {
       drawn = d.pop();
     }
 
-    if (playerIdx === 0) setLastDrawnTile(drawn);
-    h[playerIdx] = MahjongEngine.sortHand([...h[playerIdx], drawn]);
+    // 🌟 修正 2：AI 遊戲中不理牌，確保 .length - 1 永遠是剛摸進來的牌
+    if (playerIdx === 0) {
+      setLastDrawnTile(drawn);
+      h[playerIdx] = MahjongEngine.sortHand([...h[playerIdx], drawn]);
+    } else {
+      h[playerIdx] = [...h[playerIdx], drawn];
+    }
 
     if (
       MahjongEngine.isAgari(h[playerIdx], currentOpenMelds[playerIdx].length)
@@ -222,6 +292,19 @@ export const useSimulation = () => {
 
   const discardTile = (playerIdx, tileIndex) => {
     if (playerIdx === 0) setLastDrawnTile(null);
+
+    // 🌟 1. 新增這段：在真正扣除手牌前，把「打出這張牌後的聽牌結果」存起來！
+    if (playerIdx === 0) {
+      if (
+        tenpaiMap &&
+        tenpaiMap[tileIndex] &&
+        tenpaiMap[tileIndex].waitingTiles
+      ) {
+        setCurrentWaits(tenpaiMap[tileIndex].waitingTiles);
+      } else {
+        setCurrentWaits([]);
+      }
+    }
     if (playerIdx === 0 && pendingRiichi) {
       setIsRiichi((prev) => {
         const n = [...prev];
@@ -267,6 +350,8 @@ export const useSimulation = () => {
         return;
       }
     } else {
+      // 🌟 Phase 7: 一砲雙響支援 (收集所有能和牌的 AI)
+      const ronPlayers = [];
       for (let i = 1; i <= 2; i++) {
         if (
           MahjongEngine.isAgari(
@@ -274,20 +359,28 @@ export const useSimulation = () => {
             openMelds[i].length
           )
         ) {
-          handleWin(
-            i,
-            "ron",
-            discarded,
-            [...newHands[i], discarded],
-            openMelds[i],
-            kitas[i],
-            latestRiichi[i],
-            0,
-            null,
-            deck.length
-          );
-          return;
+          ronPlayers.push(i);
         }
+      }
+
+      if (ronPlayers.length === 1) {
+        handleWin(
+          ronPlayers[0],
+          "ron",
+          discarded,
+          [...newHands[ronPlayers[0]], discarded],
+          openMelds[ronPlayers[0]],
+          kitas[ronPlayers[0]],
+          latestRiichi[ronPlayers[0]],
+          0,
+          null,
+          deck.length
+        );
+        return;
+      } else if (ronPlayers.length === 2) {
+        // 如果有兩家同時和牌，呼叫專屬的雙響處理函式
+        handleDoubleWin(ronPlayers, discarded, 0, latestRiichi, newHands);
+        return;
       }
     }
     proceedToNextTurn(
@@ -328,6 +421,7 @@ export const useSimulation = () => {
         : playerIdx === 1
         ? activeCtx.ai1Wind
         : activeCtx.ai2Wind;
+    // 找到 handleWin 裡面的 calculateScore
     const scoreData = MahjongEngine.calculateScore(
       hand,
       melds,
@@ -338,13 +432,121 @@ export const useSimulation = () => {
       isDealer,
       pWind,
       sWind,
-      activeCtx.doraInd,
-      remainDeck
+      activeCtx.doraInd, // 這個現在會是陣列
+      remainDeck,
+      riichiStat ? activeCtx.uraDoraInd : [] // 🌟 新增第 12 個參數：如果是立直，就把裏寶牌指示牌傳給引擎
     );
+
+    // 🌟 將指示牌結果綁定到 scoreData 上，讓結算畫面可以畫出來
+    scoreData.doraIndicators = Array.isArray(activeCtx.doraInd)
+      ? activeCtx.doraInd
+      : [activeCtx.doraInd];
+    scoreData.uraIndicators = riichiStat ? activeCtx.uraDoraInd : [];
+
+    // 🌟 修正 4：結算前統一幫所有人的手牌排序，讓 UI 顯示整齊
+    setHands((prev) => prev.map((h) => MahjongEngine.sortHand(h)));
+    
     setScoreResult(scoreData);
+
+    // ★ 新增：錦標賽和牌/放銃上傳分數
+    if (config.tournamentConfig?.tid) {
+      const { tid, myPlayerId, currentRound } = config.tournamentConfig;
+      let myScoreChange = 0;
+
+      if (playerIdx === 0) {
+        // 情況 A：玩家自己和牌 (加分)
+        myScoreChange = scoreData.total || 0;
+      } else if (fromIdx === 0) {
+        // 情況 B：玩家放銃給 AI (扣分)
+        myScoreChange = -(scoreData.total || 0);
+      } else if (type === "tsumo") {
+        // 情況 C：AI 自摸，玩家被扣點 (扣除非莊家或莊家的支付額)
+        // 這裡依照你的 calculateScore 回傳結構來決定，暫時用扣除 dealerPay/nonDealerPay 代表
+        myScoreChange = -(
+          scoreData.dealerPay ||
+          scoreData.nonDealerPay ||
+          Math.floor(scoreData.total / 2) ||
+          0
+        );
+      }
+
+      submitRoundScore(tid, myPlayerId, currentRound, myScoreChange);
+    }
+  };
+
+  // 🌟 新增/更新：雙響專用結算處理 (支援多張寶牌與裏寶牌)
+  const handleDoubleWin = (
+    winnerIndices,
+    winTile,
+    fromIdx,
+    currentIsRiichi,
+    currentHands
+  ) => {
+    setActionMenu(null);
+    setGameState("finished");
+    setWinner({ type: "double_ron", winners: winnerIndices, from: fromIdx });
+
+    const activeCtx = context;
+    const pWind = activeCtx.pWind;
+    let myScoreChange = 0;
+    const doubleScoreResults = [];
+
+    // 1. 確保目前的表寶牌指示牌是陣列
+    const currentDoraInd = Array.isArray(activeCtx.doraInd)
+      ? activeCtx.doraInd
+      : [activeCtx.doraInd];
+
+    // 2. 分別計算兩家 AI 的得分
+    winnerIndices.forEach((idx) => {
+      const isDealer =
+        (idx === 1 && activeCtx.ai1Wind === "1z") ||
+        (idx === 2 && activeCtx.ai2Wind === "1z");
+      const sWind = idx === 1 ? activeCtx.ai1Wind : activeCtx.ai2Wind;
+
+      // 🌟 判斷這家 AI 有沒有立直，決定要不要給他裏寶牌
+      const aiRiichiStat = currentIsRiichi[idx];
+      const currentUraInd = aiRiichiStat ? activeCtx.uraDoraInd || [] : [];
+
+      // 呼叫引擎算分
+      const scoreData = MahjongEngine.calculateScore(
+        [...currentHands[idx], winTile],
+        openMelds[idx],
+        kitas[idx],
+        winTile,
+        false, // isTsumo = false (雙響絕對是榮和)
+        aiRiichiStat, // 是否立直
+        isDealer,
+        pWind,
+        sWind,
+        currentDoraInd, // 第 10 個參數：表寶牌陣列
+        deck.length, // 第 11 個參數：剩餘牌數
+        currentUraInd // 第 12 個參數：裏寶牌陣列
+      );
+
+      // 🌟 將指示牌結果綁定到 scoreData，讓 UI 知道怎麼畫寶牌圖示
+      scoreData.doraIndicators = currentDoraInd;
+      scoreData.uraIndicators = currentUraInd;
+
+      doubleScoreResults.push({ playerIdx: idx, scoreData });
+
+      // 玩家被雙響，扣分是兩家打點的總和
+      myScoreChange -= scoreData.total || 0;
+    });
+
+    setScoreResult({ isDouble: true, results: doubleScoreResults });
+
+    // 3. 上傳 Firebase 錦標賽分數
+    if (config.tournamentConfig?.tid) {
+      const { tid, myPlayerId, currentRound } = config.tournamentConfig;
+      submitRoundScore(tid, myPlayerId, currentRound, myScoreChange);
+    }
   };
 
   const executeAction = (action) => {
+    // 🌟 修正 1：只有在真正改變手牌結構(吃碰槓)時才清空聽牌。跳過或拔北不應清空。
+    if (action !== "skip" && action !== "kita") {
+      setCurrentWaits([]);
+    }
     const newHands = [...hands],
       newMelds = [...openMelds],
       newKitas = [...kitas],
@@ -402,12 +604,28 @@ export const useSimulation = () => {
         { type: "kan", tile: t, source: actionMenu.sourceIdx },
       ];
       newRivers[actionMenu.sourceIdx].pop();
+
+      // 🌟 新增：開槓翻新寶牌與裏寶牌
+      const newDora = deck.pop();
+      const newUra = deck.pop();
+      const newCtx = {
+        ...context,
+        doraInd: [
+          ...(Array.isArray(context.doraInd)
+            ? context.doraInd
+            : [context.doraInd]),
+          newDora,
+        ],
+        uraDoraInd: [...(context.uraDoraInd || []), newUra],
+      };
+      setContext(newCtx);
+
       setHands(newHands);
       setOpenMelds(newMelds);
       setRivers(newRivers);
       setActionMenu(null);
       setCurrentTurn(0);
-      drawTile(0, deck, newHands, kitas, newRivers, newMelds, isRiichi);
+      drawTile(0, deck, newHands, kitas, newRivers, newMelds, isRiichi, newCtx); // 🌟 記得最後一個參數傳入 newCtx
       return;
     }
     if (action === "ankan") {
@@ -431,10 +649,35 @@ export const useSimulation = () => {
           newHands[0] = newHands[0].filter((t) => t !== kanTile);
           newMelds[0].push({ type: "ankan", tile: kanTile });
         }
+
+        // 🌟 新增：開槓翻新寶牌與裏寶牌
+        const newDora = deck.pop();
+        const newUra = deck.pop();
+        const newCtx = {
+          ...context,
+          doraInd: [
+            ...(Array.isArray(context.doraInd)
+              ? context.doraInd
+              : [context.doraInd]),
+            newDora,
+          ],
+          uraDoraInd: [...(context.uraDoraInd || []), newUra],
+        };
+        setContext(newCtx);
+
         setHands(newHands);
         setOpenMelds(newMelds);
         setActionMenu(null);
-        drawTile(0, deck, newHands, kitas, rivers, newMelds, isRiichi);
+        drawTile(
+          0,
+          deck,
+          newHands,
+          kitas,
+          newRivers,
+          newMelds,
+          isRiichi,
+          newCtx
+        ); // 🌟 記得最後一個參數傳入 newCtx
         return;
       }
     }
@@ -502,15 +745,10 @@ export const useSimulation = () => {
         setTimeLeft((prev) => {
           if (prev <= 1) {
             clearInterval(timerId);
-            let minScore = Infinity,
-              bestIdx = 0;
-            Object.entries(weights).forEach(([idx, score]) => {
-              if (score < minScore) {
-                minScore = score;
-                bestIdx = parseInt(idx);
-              }
-            });
-            discardTile(0, bestIdx);
+            // 🌟 修正 3A：超時強制摸切，必須丟出「剛摸進來的那張牌」
+            const idx = hands[0].lastIndexOf(lastDrawnTile);
+            const discardIdx = idx !== -1 ? idx : hands[0].length - 1;
+            discardTile(0, discardIdx);
             return 0;
           }
           return prev - 1;
@@ -530,6 +768,7 @@ export const useSimulation = () => {
     kitas,
     isRiichi,
     weights,
+    lastDrawnTile,
   ]);
 
   useEffect(() => {
@@ -539,10 +778,15 @@ export const useSimulation = () => {
       isRiichi[0] &&
       !actionMenu
     ) {
-      const timer = setTimeout(() => discardTile(0, hands[0].length - 1), 800);
+      const timer = setTimeout(() => {
+        // 🌟 修正 3B：立直後的自動摸切，必須精準丟出「剛摸進來的那張牌」
+        const idx = hands[0].lastIndexOf(lastDrawnTile);
+        const discardIdx = idx !== -1 ? idx : hands[0].length - 1;
+        discardTile(0, discardIdx);
+      }, 800);
       return () => clearTimeout(timer);
     }
-  }, [gameState, currentTurn, isRiichi, actionMenu, hands]);
+  }, [gameState, currentTurn, isRiichi, actionMenu, hands, lastDrawnTile]);
 
   useEffect(() => {
     if (gameState === "playing" && currentTurn !== 0 && !actionMenu) {
@@ -638,6 +882,7 @@ export const useSimulation = () => {
       pendingRiichi,
       tacticalInfo,
       lastDrawnTile,
+      currentWaits,
     },
     actions: {
       setConfig,

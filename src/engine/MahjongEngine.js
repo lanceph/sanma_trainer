@@ -1,4 +1,5 @@
 import { SANMA_TILE_SET, TILE_LABELS } from "../constants/mahjong";
+import { mulberry32 } from "../utils/rng"; // 記得在檔案最上方引入
 
 export const MahjongEngine = {
   sortHand: (hand) => {
@@ -153,8 +154,38 @@ export const MahjongEngine = {
     return { isTenpai, ukeire, waitingTiles };
   },
 
-  generateRandomDeck: () => {
+  generateRandomDeck: (seedString = "") => {
     let deck = [];
+    const SANMA_TILE_SET = [
+      "1m",
+      "9m",
+      "1p",
+      "2p",
+      "3p",
+      "4p",
+      "5p",
+      "6p",
+      "7p",
+      "8p",
+      "9p",
+      "1s",
+      "2s",
+      "3s",
+      "4s",
+      "5s",
+      "6s",
+      "7s",
+      "8s",
+      "9s",
+      "1z",
+      "2z",
+      "3z",
+      "4z",
+      "5z",
+      "6z",
+      "7z",
+    ];
+
     SANMA_TILE_SET.forEach((t) => {
       if (t === "5p" || t === "5s") {
         deck.push(t);
@@ -166,8 +197,22 @@ export const MahjongEngine = {
         for (let i = 0; i < 4; i++) deck.push(t);
       }
     });
+
+    // 將字串 Seed 轉換為數字
+    let seedNum = Math.floor(Math.random() * 4294967296); // 預設隨機
+    if (seedString) {
+      seedNum = 0;
+      for (let i = 0; i < seedString.length; i++) {
+        seedNum = (Math.imul(31, seedNum) + seedString.charCodeAt(i)) | 0;
+      }
+    }
+
+    // 初始化 RNG
+    const random = mulberry32(seedNum);
+
+    // Fisher-Yates 洗牌演算法 (使用 custom random)
     for (let i = deck.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
+      const j = Math.floor(random() * (i + 1));
       [deck[i], deck[j]] = [deck[j], deck[i]];
     }
     return deck;
@@ -687,7 +732,8 @@ export const MahjongEngine = {
     pWind,
     sWind,
     doraInd,
-    deckRemainder = 10
+    deckRemainder = 10,
+    uraDoraInd = []
   ) => {
     let isYakuman = false;
     const normHand = hand.map((t) => (t[0] === "0" ? `5${t[1]}` : t));
@@ -1126,6 +1172,57 @@ export const MahjongEngine = {
       if (fHan === 0 || fHan === dC + rC) {
         fYaku = [{ name: "基礎役種 (補償)", han: 1 }, ...fYaku];
         fHan = 1 + dC + rC;
+      }
+    }
+
+    // 🌟 1. 確保指示牌是陣列
+    const doraIndicators = Array.isArray(doraInd) ? doraInd : [doraInd];
+    const uraIndicators = Array.isArray(uraDoraInd) ? uraDoraInd : [];
+
+    // 🌟 2. 三麻專用：從「指示牌」推算「真正的寶牌」
+    const getActualDora = (indicator) => {
+      const num = parseInt(indicator[0]);
+      const suit = indicator[1];
+      if (suit === "z") {
+        if (num === 4) return "1z"; // 北風 -> 東風
+        if (num === 7) return "5z"; // 白板 -> 發財
+        return `${num + 1}z`;
+      }
+      if (suit === "m") return num === 1 ? "9m" : "1m"; // 三麻萬子只有 1, 9
+      return `${num === 9 ? 1 : num + 1}${suit}`;
+    };
+
+    const actualDoras = doraIndicators.map(getActualDora);
+    const actualUraDoras = uraIndicators.map(getActualDora);
+
+    // 🌟 3. 計算手牌中含有幾張寶牌
+    const countDoraInHand = (doraList) => {
+      let count = 0;
+      const allTiles = [
+        ...hand,
+        ...melds.flatMap((m) =>
+          Array(m.type === "kan" || m.type === "ankan" ? 4 : 3).fill(m.tile)
+        ),
+      ];
+      doraList.forEach((dora) => {
+        count += allTiles.filter((t) => t === dora).length;
+      });
+      return count;
+    };
+
+    // 表寶牌加番
+    const doraHan = countDoraInHand(actualDoras);
+    if (doraHan > 0) {
+      yakuList.push({ name: "寶牌 (Dora)", han: doraHan });
+      han += doraHan;
+    }
+
+    // 裏寶牌加番 (僅限立直)
+    if (isRiichi) {
+      const uraHan = countDoraInHand(actualUraDoras);
+      if (uraHan > 0) {
+        yakuList.push({ name: "裏寶牌 (Ura)", han: uraHan });
+        han += uraHan;
       }
     }
 
