@@ -115,14 +115,62 @@ export const useSimulation = () => {
     currentIsRiichi,
     ctxOverride = null
   ) => {
+    // ==========================================
+    // 🌟 Phase 7: 處理流局 (Draw) 與 罰符結算
+    // ==========================================
     if (currentDeck.length === 0) {
       setGameState("finished");
-      setWinner({ type: "draw" });
 
-      // ★ 新增：錦標賽流局上傳分數 (流局暫定得失分為 0，你也可以擴充罰符邏輯)
+      // 1. 利用引擎分析三家的聽牌狀態
+      const tenpaiStatus = [false, false, false];
+      for (let i = 0; i < 3; i++) {
+        // 如果已經立直，必定是聽牌狀態；如果沒立直，讓引擎偷偷算一下
+        if (currentIsRiichi[i]) {
+          tenpaiStatus[i] = true;
+        } else {
+          const mockCtx = {
+            rivers: currentRivers,
+            openMelds: currentOpenMelds,
+            kitas: currentKitas,
+            openMeldCount: currentOpenMelds[i].length,
+          };
+          const analysis = MahjongEngine.analyzeDiscard(
+            currentHands[i],
+            null,
+            mockCtx,
+            "attack",
+            [],
+            currentOpenMelds[i].length
+          );
+          tenpaiStatus[i] = analysis.isTenpai;
+        }
+      }
+
+      // 2. 計算三麻流局罰符 (總池 2000 點)
+      const tenpaiCount = tenpaiStatus.filter((t) => t).length;
+      let bappuScore = 0; // 玩家 (0號位) 的罰符得失分
+
+      if (tenpaiCount === 1 || tenpaiCount === 2) {
+        if (tenpaiStatus[0]) {
+          // 玩家【有】聽牌：
+          // 若 1 人聽牌，拿 2000 (另外兩家各扣 1000)
+          // 若 2 人聽牌，拿 1000 (沒聽的扣 2000)
+          bappuScore = tenpaiCount === 1 ? 2000 : 1000;
+        } else {
+          // 玩家【沒】聽牌：
+          // 若 1 人聽牌，扣 1000 給他
+          // 若 2 人聽牌，扣 2000 (各給 1000)
+          bappuScore = tenpaiCount === 1 ? -1000 : -2000;
+        }
+      }
+
+      // 將結果存入 winner state (未來可以讓 UI 顯示「流局聽牌/未聽牌」)
+      setWinner({ type: "draw", bappuScore, tenpaiStatus });
+
+      // 3. 上傳錦標賽流局分數
       if (config.tournamentConfig?.tid) {
         const { tid, myPlayerId, currentRound } = config.tournamentConfig;
-        submitRoundScore(tid, myPlayerId, currentRound, 0);
+        submitRoundScore(tid, myPlayerId, currentRound, bappuScore);
       }
       return;
     }
@@ -279,6 +327,8 @@ export const useSimulation = () => {
         return;
       }
     } else {
+      // 🌟 Phase 7: 一砲雙響支援 (收集所有能和牌的 AI)
+      const ronPlayers = [];
       for (let i = 1; i <= 2; i++) {
         if (
           MahjongEngine.isAgari(
@@ -286,20 +336,28 @@ export const useSimulation = () => {
             openMelds[i].length
           )
         ) {
-          handleWin(
-            i,
-            "ron",
-            discarded,
-            [...newHands[i], discarded],
-            openMelds[i],
-            kitas[i],
-            latestRiichi[i],
-            0,
-            null,
-            deck.length
-          );
-          return;
+          ronPlayers.push(i);
         }
+      }
+
+      if (ronPlayers.length === 1) {
+        handleWin(
+          ronPlayers[0],
+          "ron",
+          discarded,
+          [...newHands[ronPlayers[0]], discarded],
+          openMelds[ronPlayers[0]],
+          kitas[ronPlayers[0]],
+          latestRiichi[ronPlayers[0]],
+          0,
+          null,
+          deck.length
+        );
+        return;
+      } else if (ronPlayers.length === 2) {
+        // 如果有兩家同時和牌，呼叫專屬的雙響處理函式
+        handleDoubleWin(ronPlayers, discarded, 0, latestRiichi, newHands);
+        return;
       }
     }
     proceedToNextTurn(
@@ -377,6 +435,57 @@ export const useSimulation = () => {
         );
       }
 
+      submitRoundScore(tid, myPlayerId, currentRound, myScoreChange);
+    }
+  };
+
+  // 🌟 新增：雙響專用結算處理
+  const handleDoubleWin = (
+    winnerIndices,
+    winTile,
+    fromIdx,
+    currentIsRiichi,
+    currentHands
+  ) => {
+    setActionMenu(null);
+    setGameState("finished");
+    setWinner({ type: "double_ron", winners: winnerIndices, from: fromIdx });
+
+    const activeCtx = context;
+    const pWind = activeCtx.pWind;
+    let myScoreChange = 0;
+    const doubleScoreResults = [];
+
+    // 分別計算兩家 AI 的得分
+    winnerIndices.forEach((idx) => {
+      const isDealer =
+        (idx === 1 && activeCtx.ai1Wind === "1z") ||
+        (idx === 2 && activeCtx.ai2Wind === "1z");
+      const sWind = idx === 1 ? activeCtx.ai1Wind : activeCtx.ai2Wind;
+
+      const scoreData = MahjongEngine.calculateScore(
+        [...currentHands[idx], winTile],
+        openMelds[idx],
+        kitas[idx],
+        winTile,
+        false,
+        currentIsRiichi[idx],
+        isDealer,
+        pWind,
+        sWind,
+        activeCtx.doraInd,
+        deck.length
+      );
+
+      doubleScoreResults.push({ playerIdx: idx, scoreData });
+      myScoreChange -= scoreData.total || 0; // 將兩家的打點相加，就是玩家要扣的總分
+    });
+
+    setScoreResult({ isDouble: true, results: doubleScoreResults });
+
+    // 上傳 Firebase (扣除雙倍分數)
+    if (config.tournamentConfig?.tid) {
+      const { tid, myPlayerId, currentRound } = config.tournamentConfig;
       submitRoundScore(tid, myPlayerId, currentRound, myScoreChange);
     }
   };
