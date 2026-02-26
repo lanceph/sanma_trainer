@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from "react";
+import useSound from "use-sound";
+import clickSound from "./assets/sounds/click.mp3";
 import {
   ShieldAlert,
   Library,
@@ -95,6 +97,9 @@ export default function App() {
     return saved === "true";
   });
 
+  // 🌟 註冊點擊音效
+  const [playClick] = useSound(clickSound, { soundEnabled: !isMuted });
+
   // 🌟 新增：當狀態改變時，存回 localStorage
   const toggleMute = () => {
     setIsMuted((prev) => {
@@ -106,6 +111,8 @@ export default function App() {
 
   // 🌟 2. 實作攔截分頁切換的邏輯
   const handleTabSwitch = async (targetTabId) => {
+    playClick(); // 🌟 播放點擊音效
+
     // 如果是從錦標賽切去別的地方，且正在房間內
     if (
       activeTab === "tournamentLobby" &&

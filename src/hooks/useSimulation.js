@@ -1,4 +1,10 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useContext } from "react";
+import useSound from "use-sound"; // 🌟 引入音效套件
+import { AudioContext } from "../App"; // 🌟 引入全域靜音狀態
+// 🌟 引入你的音檔
+import drawSound from "../assets/sounds/draw.mp3";
+import discardSound from "../assets/sounds/discard.mp3";
+import clickSound from "../assets/sounds/click.mp3";
 import { MahjongEngine } from "../engine/MahjongEngine";
 import {
   submitRoundScore,
@@ -6,6 +12,12 @@ import {
 } from "../services/tournamentService";
 
 export const useSimulation = () => {
+  // 🌟 取得目前是否靜音
+  const { isMuted } = useContext(AudioContext);
+  // 🌟 註冊音效 (soundEnabled 會自動幫我們處理靜音邏輯)
+  const [playDraw] = useSound(drawSound, { soundEnabled: !isMuted });
+  const [playDiscard] = useSound(discardSound, { soundEnabled: !isMuted });
+  const [playClick] = useSound(clickSound, { soundEnabled: !isMuted });
   const [config, setConfig] = useState({
     aiDiff: 3,
     timeLimit: 0,
@@ -179,6 +191,9 @@ export const useSimulation = () => {
       }
       return;
     }
+
+    playDraw(); // 🌟 播放摸牌音效
+
     let d = [...currentDeck],
       h = [...currentHands],
       k = [...currentKitas],
@@ -291,6 +306,8 @@ export const useSimulation = () => {
   };
 
   const discardTile = (playerIdx, tileIndex) => {
+    playDiscard(); // 🌟 播放打牌音效
+
     if (playerIdx === 0) setLastDrawnTile(null);
 
     // 🌟 1. 新增這段：在真正扣除手牌前，把「打出這張牌後的聽牌結果」存起來！
@@ -445,7 +462,7 @@ export const useSimulation = () => {
 
     // 🌟 修正 4：結算前統一幫所有人的手牌排序，讓 UI 顯示整齊
     setHands((prev) => prev.map((h) => MahjongEngine.sortHand(h)));
-    
+
     setScoreResult(scoreData);
 
     // ★ 新增：錦標賽和牌/放銃上傳分數
@@ -543,6 +560,8 @@ export const useSimulation = () => {
   };
 
   const executeAction = (action) => {
+    playClick(); // 🌟 播放按鈕點擊音效
+
     // 🌟 修正 1：只有在真正改變手牌結構(吃碰槓)時才清空聽牌。跳過或拔北不應清空。
     if (action !== "skip" && action !== "kita") {
       setCurrentWaits([]);
