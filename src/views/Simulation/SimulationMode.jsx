@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Cpu, User } from "lucide-react";
+import { Cpu, User, Zap, Eye } from "lucide-react";
 import Tile from "../../components/Tile";
 import TacticalAdvisor from "../../components/TacticalAdvisor";
 import { useSimulation } from "../../hooks/useSimulation";
@@ -409,6 +409,57 @@ export const SimulationMode = ({ tournamentConfig }) => {
                 </div>
                 <div className="text-emerald-300 text-sm font-bold font-mono ml-2 border-l border-emerald-700 pl-3">
                   剩餘 {activeTenpaiInfo.ukeire} 張
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* 🌟 新增：聽牌/立直常駐提示區 */}
+          {state.currentWaits && state.currentWaits.length > 0 && (
+            <div className="flex justify-center mb-8 relative z-30 animate-in fade-in zoom-in-95 duration-300">
+              <div
+                className={`px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-4 backdrop-blur-md border-2 ${
+                  state.isRiichi[0]
+                    ? "bg-red-950/90 border-red-500/60 shadow-[0_0_25px_rgba(239,68,68,0.3)]"
+                    : "bg-slate-900/90 border-emerald-500/60 shadow-[0_0_25px_rgba(16,185,129,0.2)]"
+                }`}
+              >
+                {/* 左側狀態文字 */}
+                <div
+                  className={`text-sm font-black flex items-center gap-1.5 ${
+                    state.isRiichi[0] ? "text-red-400" : "text-emerald-400"
+                  }`}
+                >
+                  {state.isRiichi[0] ? (
+                    <>
+                      <Zap size={18} className="fill-red-400 animate-pulse" />{" "}
+                      立直聽牌
+                    </>
+                  ) : (
+                    <>
+                      <Eye size={18} /> 默聽中
+                    </>
+                  )}
+                </div>
+
+                <div className="w-px h-8 bg-slate-600/50"></div>
+
+                {/* 右側聽牌麻將圖示 (直接使用 Tile 元件) */}
+                <div className="flex gap-1.5 items-center">
+                  {state.currentWaits.map((tile, idx) => (
+                    <div key={idx} className="relative">
+                      {/* 如果聽的牌是寶牌，上面可以多一個小光暈 */}
+                      {checkDora(tile) && (
+                        <div className="absolute -inset-1 bg-yellow-400/20 blur-sm rounded-full"></div>
+                      )}
+                      <Tile
+                        tile={tile}
+                        isDora={checkDora(tile)}
+                        small={true}
+                        className="!w-7 !h-10 md:!w-8 md:!h-11 shadow-lg"
+                      />
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>

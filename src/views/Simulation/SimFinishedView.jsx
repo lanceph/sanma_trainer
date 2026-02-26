@@ -63,6 +63,44 @@ export const SimFinishedView = ({ state, actions }) => {
               </div>
             ))}
           </div>
+          {/* 🌟 新增：寶牌指示牌展示區 */}
+          <div className="mt-4 p-3 bg-slate-900/50 rounded-lg border border-slate-700 text-sm">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-yellow-500 font-bold w-16 text-right">
+                寶牌指示:
+              </span>
+              <div className="flex gap-1">
+                {state.scoreResult.doraIndicators?.map((t, i) => (
+                  <span
+                    key={i}
+                    className="px-1.5 py-0.5 bg-slate-200 text-slate-900 rounded font-black border-b-2 border-slate-400"
+                  >
+                    {t}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            {/* 只有立直且有裏寶牌時才顯示 */}
+            {state.scoreResult.uraIndicators &&
+              state.scoreResult.uraIndicators.length > 0 && (
+                <div className="flex items-center gap-2">
+                  <span className="text-emerald-400 font-bold w-16 text-right">
+                    裏寶指示:
+                  </span>
+                  <div className="flex gap-1">
+                    {state.scoreResult.uraIndicators.map((t, i) => (
+                      <span
+                        key={i}
+                        className="px-1.5 py-0.5 bg-slate-700 text-slate-100 rounded font-black border-b-2 border-slate-900"
+                      >
+                        {t}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+          </div>
           <div className="text-right text-sm text-slate-400 font-mono pt-2 border-t border-slate-700">
             總計: {state.scoreResult.han} 翻 {state.scoreResult.fu} 符
           </div>

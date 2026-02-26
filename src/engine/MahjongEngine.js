@@ -732,7 +732,8 @@ export const MahjongEngine = {
     pWind,
     sWind,
     doraInd,
-    deckRemainder = 10
+    deckRemainder = 10,
+    uraDoraInd = []
   ) => {
     let isYakuman = false;
     const normHand = hand.map((t) => (t[0] === "0" ? `5${t[1]}` : t));
@@ -1171,6 +1172,57 @@ export const MahjongEngine = {
       if (fHan === 0 || fHan === dC + rC) {
         fYaku = [{ name: "基礎役種 (補償)", han: 1 }, ...fYaku];
         fHan = 1 + dC + rC;
+      }
+    }
+
+    // 🌟 1. 確保指示牌是陣列
+    const doraIndicators = Array.isArray(doraInd) ? doraInd : [doraInd];
+    const uraIndicators = Array.isArray(uraDoraInd) ? uraDoraInd : [];
+
+    // 🌟 2. 三麻專用：從「指示牌」推算「真正的寶牌」
+    const getActualDora = (indicator) => {
+      const num = parseInt(indicator[0]);
+      const suit = indicator[1];
+      if (suit === "z") {
+        if (num === 4) return "1z"; // 北風 -> 東風
+        if (num === 7) return "5z"; // 白板 -> 發財
+        return `${num + 1}z`;
+      }
+      if (suit === "m") return num === 1 ? "9m" : "1m"; // 三麻萬子只有 1, 9
+      return `${num === 9 ? 1 : num + 1}${suit}`;
+    };
+
+    const actualDoras = doraIndicators.map(getActualDora);
+    const actualUraDoras = uraIndicators.map(getActualDora);
+
+    // 🌟 3. 計算手牌中含有幾張寶牌
+    const countDoraInHand = (doraList) => {
+      let count = 0;
+      const allTiles = [
+        ...hand,
+        ...melds.flatMap((m) =>
+          Array(m.type === "kan" || m.type === "ankan" ? 4 : 3).fill(m.tile)
+        ),
+      ];
+      doraList.forEach((dora) => {
+        count += allTiles.filter((t) => t === dora).length;
+      });
+      return count;
+    };
+
+    // 表寶牌加番
+    const doraHan = countDoraInHand(actualDoras);
+    if (doraHan > 0) {
+      yakuList.push({ name: "寶牌 (Dora)", han: doraHan });
+      han += doraHan;
+    }
+
+    // 裏寶牌加番 (僅限立直)
+    if (isRiichi) {
+      const uraHan = countDoraInHand(actualUraDoras);
+      if (uraHan > 0) {
+        yakuList.push({ name: "裏寶牌 (Ura)", han: uraHan });
+        han += uraHan;
       }
     }
 
