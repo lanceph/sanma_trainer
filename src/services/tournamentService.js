@@ -143,3 +143,13 @@ export const advanceToNextRound = async (tid) => {
 
   await update(tournamentRef, updates);
 };
+
+// 7. 房主繼承 (Host Migration)
+export const claimHost = async (tid, newHostId, oldHostId) => {
+  const updates = {};
+  if (oldHostId) {
+    updates[`players/${oldHostId}/isHost`] = false;
+  }
+  updates[`players/${newHostId}/isHost`] = true;
+  await update(ref(db, `tournaments/${tid}`), updates);
+};
