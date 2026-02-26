@@ -1,0 +1,533 @@
+import React from "react";
+import { Cpu, User } from "lucide-react";
+import Tile from "../../components/Tile";
+import TacticalAdvisor from "../../components/TacticalAdvisor";
+import { useSimulation } from "../../hooks/useSimulation";
+import { SimSetupView } from "./SimSetupView";
+import { SimFinishedView } from "./SimFinishedView";
+import { SimActionMenu } from "./SimActionMenu";
+import { MahjongEngine } from "../../engine/MahjongEngine";
+import { TILE_LABELS, getTileName } from "../../constants/mahjong";
+
+export const SimulationMode = () => {
+  const { state, actions } = useSimulation();
+
+  if (state.gameState === "setup")
+    return <SimSetupView state={state} actions={actions} />;
+
+  const checkDora = (t) => MahjongEngine.isTileDora(t, state.context.doraInd);
+
+  const renderMelds = (idx, isPlayer = false) => {
+    const tileClass = isPlayer
+      ? "!w-6 !h-9 md:!w-7 md:!h-10"
+      : "!w-5 !h-8 md:!w-6 md:!h-9";
+    return state.openMelds[idx].map((m, i) => (
+      <div key={i} className="flex gap-0.5 bg-black/20 p-1 rounded items-end">
+        <Tile
+          tile={m.tile}
+          small={true}
+          isDora={checkDora(m.tile)}
+          className={tileClass}
+        />
+        <Tile
+          tile={m.tile}
+          small={true}
+          isDora={checkDora(m.tile)}
+          className={tileClass}
+        />
+        <Tile
+          tile={m.tile}
+          small={true}
+          isDora={checkDora(m.tile)}
+          className={tileClass}
+        />
+        {(m.type === "kan" || m.type === "ankan") && (
+          <Tile
+            tile={m.tile}
+            small={true}
+            isDora={checkDora(m.tile)}
+            faceDown={m.type === "ankan"}
+            className={tileClass}
+          />
+        )}
+      </div>
+    ));
+  };
+
+  let activeTenpaiInfo = null;
+  let currentReason = "";
+  let lastDrawnIdx = -1;
+
+  if (
+    state.currentTurn === 0 &&
+    !state.actionMenu &&
+    state.gameState !== "finished" &&
+    !state.isRiichi[0]
+  ) {
+    const minScore = Math.min(...Object.values(state.weights));
+    let targetIdx = state.selectedTileIndex;
+    if (targetIdx === null)
+      targetIdx = Object.keys(state.weights).find(
+        (k) => Math.abs(state.weights[k] - minScore) < 0.05
+      );
+
+    if (targetIdx !== undefined && state.tenpaiMap[targetIdx])
+      activeTenpaiInfo = state.tenpaiMap[targetIdx];
+
+    const bestIndices = Object.keys(state.weights)
+      .filter((k) => Math.abs(state.weights[k] - minScore) < 0.05)
+      .map(Number);
+    const bestTiles = [
+      ...new Set(bestIndices.map((i) => getTileName(state.hands[0][i]))),
+    ];
+    const isDefense =
+      state.tacticalInfo?.stance === "defend" ||
+      state.tacticalInfo?.stance === "caution";
+
+    if (state.selectedTileIndex !== null) {
+      const selScore = state.weights[state.selectedTileIndex];
+      if (isDefense) {
+        if (Math.abs(selScore - minScore) < 0.05)
+          currentReason = `🛡️ 防守推薦：此牌危險度最低 (危 ${selScore}%)，是最安全的選擇。`;
+        else
+          currentReason = `⚠️ 危險警告：此牌危險度高達 ${selScore}%，打出有放銃風險！最安全選擇是 ${bestTiles.join(
+            "/"
+          )}。`;
+      } else {
+        if (Math.abs(selScore - minScore) < 0.05)
+          currentReason = `✅ 最佳選擇：此牌關聯分最低，打出能最大化進張效率。`;
+        else if (selScore <= -1000)
+          currentReason = `✅ 維持聽牌：打出此牌可聽牌，進張數為 ${Math.round(
+            Math.abs(selScore + 1000)
+          )} 張。`;
+        else if (selScore >= 1000)
+          currentReason = `❌ 嚴重失誤：打出此牌將破壞聽牌或已完成的面子！`;
+        else
+          currentReason = `❌ 效率不佳：此牌關聯分為 ${selScore.toFixed(
+            1
+          )}，會損失部分進張。推薦打出 ${bestTiles.join("/")}。`;
+      }
+    } else {
+      if (isDefense)
+        currentReason = `👉 防守模式：敵方威脅極大！請優先打出危險度最低的安全牌。`;
+      else if (activeTenpaiInfo)
+        currentReason = `👉 推薦打出 ${bestTiles.join(
+          " / "
+        )} 即可維持最大面聽牌。`;
+      else
+        currentReason = `👉 推薦打出 ${bestTiles.join(
+          " / "
+        )}：系統綜合關聯分數最低，效率最差。`;
+    }
+  }
+
+  if (
+    state.currentTurn === 0 &&
+    state.lastDrawnTile &&
+    state.hands[0].length % 3 === 2
+  ) {
+    lastDrawnIdx = state.hands[0].lastIndexOf(state.lastDrawnTile);
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="bg-slate-800 text-white p-3 md:p-4 rounded-xl shadow-lg flex flex-wrap justify-between items-center gap-4">
+        <div className="flex gap-4 items-center">
+          <div className="bg-slate-700 px-3 py-1 rounded-lg text-sm font-bold border border-slate-600">
+            {TILE_LABELS[state.context.pWind]}風場 /{" "}
+            {TILE_LABELS[state.context.sWind]}家
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-slate-400 font-bold">寶牌指示</span>
+            <Tile
+              tile={state.context.doraInd}
+              small={true}
+              className="!w-6 !h-9 !border-b-2"
+            />
+          </div>
+        </div>
+        <div className="flex items-center gap-4">
+          <div className="text-sm font-bold text-slate-300">
+            剩餘{" "}
+            <span className="text-emerald-400 text-lg">
+              {state.deck.length}
+            </span>{" "}
+            張
+          </div>
+          {state.currentTurn === 0 &&
+            state.config.timeLimit > 0 &&
+            !state.actionMenu &&
+            !state.isRiichi[0] && (
+              <div
+                className={`text-lg font-mono font-bold ${
+                  state.timeLeft <= 5
+                    ? "text-red-400 animate-pulse"
+                    : "text-yellow-400"
+                }`}
+              >
+                ⏱ {state.timeLeft}s
+              </div>
+            )}
+        </div>
+      </div>
+
+      {state.gameState === "finished" && (
+        <SimFinishedView state={state} actions={actions} />
+      )}
+
+      <div className="bg-emerald-800 p-4 rounded-xl shadow-inner relative min-h-[500px] flex flex-col justify-between overflow-hidden">
+        {/* Opponents Area */}
+        <div className="flex justify-between items-start">
+          <div
+            className={`p-2 rounded-lg ${
+              state.currentTurn === 2 && state.gameState !== "finished"
+                ? "bg-white/20 ring-2 ring-yellow-400"
+                : ""
+            }`}
+          >
+            <div className="text-white text-xs font-bold mb-1 flex items-center gap-2">
+              <Cpu size={12} />
+              上家 ({TILE_LABELS[state.context.ai2Wind]})
+              {state.isRiichi[2] && (
+                <span className="bg-red-600 text-white text-[10px] px-2 py-0.5 rounded shadow-sm animate-pulse">
+                  立直
+                </span>
+              )}
+            </div>
+            <div className="flex gap-0.5 mb-1">{renderMelds(2)}</div>
+            {state.kitas[2].length > 0 && (
+              <div className="flex gap-0.5 mb-1 pl-1 border-l border-white/20">
+                {state.kitas[2].map((t, i) => (
+                  <Tile
+                    key={`k2-${i}`}
+                    tile={t}
+                    small={true}
+                    isDora={true}
+                    className="!w-5 !h-8 md:!w-6 md:!h-9"
+                  />
+                ))}
+              </div>
+            )}
+            <div className="flex gap-0.5">
+              {state.hands[2].map((_, i) => (
+                <Tile
+                  key={i}
+                  faceDown={state.gameState === "playing"}
+                  tile={
+                    state.gameState === "finished" ? state.hands[2][i] : null
+                  }
+                  isDora={
+                    state.gameState === "finished"
+                      ? checkDora(state.hands[2][i])
+                      : false
+                  }
+                  small={true}
+                  className="!w-5 !h-8 md:!w-6 md:!h-9 !border-b-2"
+                />
+              ))}
+            </div>
+            <div className="grid grid-cols-6 gap-0.5 md:gap-1 mt-2 w-max">
+              {state.rivers[2].map((t, i) => (
+                <Tile
+                  key={`r2-${i}`}
+                  tile={t}
+                  small={true}
+                  isRiver={true}
+                  isDora={checkDora(t)}
+                  className="!w-6 !h-9 md:!w-7 md:!h-10 !border-b-2 opacity-80"
+                />
+              ))}
+            </div>
+          </div>
+          <div
+            className={`p-2 rounded-lg text-right flex flex-col items-end ${
+              state.currentTurn === 1 && state.gameState !== "finished"
+                ? "bg-white/20 ring-2 ring-yellow-400"
+                : ""
+            }`}
+          >
+            <div className="text-white text-xs font-bold mb-1 justify-end flex items-center gap-2">
+              {state.isRiichi[1] && (
+                <span className="bg-red-600 text-white text-[10px] px-2 py-0.5 rounded shadow-sm animate-pulse">
+                  立直
+                </span>
+              )}
+              下家 ({TILE_LABELS[state.context.ai1Wind]})<Cpu size={12} />
+            </div>
+            <div className="flex gap-0.5 mb-1 justify-end">
+              {renderMelds(1)}
+            </div>
+            {state.kitas[1].length > 0 && (
+              <div className="flex gap-0.5 mb-1 pr-1 border-r border-white/20 justify-end">
+                {state.kitas[1].map((t, i) => (
+                  <Tile
+                    key={`k1-${i}`}
+                    tile={t}
+                    small={true}
+                    isDora={true}
+                    className="!w-5 !h-8 md:!w-6 md:!h-9"
+                  />
+                ))}
+              </div>
+            )}
+            <div className="flex gap-0.5 justify-end">
+              {state.hands[1].map((_, i) => (
+                <Tile
+                  key={i}
+                  faceDown={state.gameState === "playing"}
+                  tile={
+                    state.gameState === "finished" ? state.hands[1][i] : null
+                  }
+                  isDora={
+                    state.gameState === "finished"
+                      ? checkDora(state.hands[1][i])
+                      : false
+                  }
+                  small={true}
+                  className="!w-5 !h-8 md:!w-6 md:!h-9 !border-b-2"
+                />
+              ))}
+            </div>
+            <div
+              className="grid grid-cols-6 gap-0.5 md:gap-1 mt-2 w-max"
+              dir="ltr"
+            >
+              {state.rivers[1].map((t, i) => (
+                <Tile
+                  key={`r1-${i}`}
+                  tile={t}
+                  small={true}
+                  isRiver={true}
+                  isDora={checkDora(t)}
+                  className="!w-6 !h-9 md:!w-7 md:!h-10 !border-b-2 opacity-80"
+                />
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {state.gameState === "playing" && state.actionMenu && (
+          <SimActionMenu state={state} actions={actions} />
+        )}
+
+        {/* Player Area */}
+        <div className="flex justify-center mt-8 mb-4">
+          <div className="grid grid-cols-6 gap-0.5 md:gap-1 w-max">
+            {state.rivers[0].map((t, i) => (
+              <Tile
+                key={`r0-${i}`}
+                tile={t}
+                small={true}
+                isRiver={true}
+                isDora={checkDora(t)}
+                className="!w-7 !h-10 md:!w-8 !h-11 opacity-90"
+              />
+            ))}
+          </div>
+        </div>
+
+        <div
+          className={`relative p-4 pt-10 rounded-xl border-t-4 mt-2 ${
+            state.currentTurn === 0 && state.gameState !== "finished"
+              ? "bg-white/10 border-yellow-400 shadow-[0_-10px_20px_rgba(0,0,0,0.2)]"
+              : "border-transparent"
+          }`}
+        >
+          <div className="absolute -top-5 left-4 bg-slate-900 text-white text-xs px-3 py-1.5 rounded-full font-bold shadow-md flex items-center gap-1 z-30">
+            <User size={14} /> 自家手牌{" "}
+            {state.currentTurn === 0 &&
+              !state.actionMenu &&
+              state.gameState !== "finished" && (
+                <span className="text-yellow-400 ml-1 animate-pulse">
+                  您的回合
+                </span>
+              )}{" "}
+            {state.isRiichi[0] && (
+              <span className="bg-red-600 text-white ml-2 px-2 py-0.5 rounded-full shadow-sm">
+                立直中
+              </span>
+            )}
+          </div>
+
+          {(state.openMelds[0].length > 0 || state.kitas[0].length > 0) && (
+            <div className="flex justify-end gap-2 mb-6 pr-2">
+              {state.kitas[0].length > 0 && (
+                <div className="flex gap-0.5 mr-2 self-end border-r border-white/20 pr-3">
+                  {state.kitas[0].map((t, i) => (
+                    <Tile
+                      key={`k0-${i}`}
+                      tile={t}
+                      small={true}
+                      isDora={true}
+                      className="!w-6 !h-9 md:!w-7 md:!h-10"
+                    />
+                  ))}
+                </div>
+              )}
+              {renderMelds(0, true)}
+            </div>
+          )}
+
+          {activeTenpaiInfo && (
+            <div className="flex justify-center mb-6 animate-in fade-in slide-in-from-bottom-2">
+              <div className="bg-emerald-900/80 border border-emerald-500 p-2 px-4 rounded-xl shadow-lg flex items-center gap-3">
+                <div className="bg-emerald-500 text-white text-xs font-black px-2 py-1 rounded">
+                  聽牌預測
+                </div>
+                <div className="flex gap-1">
+                  {activeTenpaiInfo.waitingTiles.map((wt, i) => (
+                    <Tile
+                      key={i}
+                      tile={wt}
+                      isDora={checkDora(wt)}
+                      small={true}
+                      className="!w-6 !h-9"
+                    />
+                  ))}
+                </div>
+                <div className="text-emerald-300 text-sm font-bold font-mono ml-2 border-l border-emerald-700 pl-3">
+                  剩餘 {activeTenpaiInfo.ukeire} 張
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div className="flex justify-center gap-1 md:gap-2 mb-2 flex-wrap mt-8">
+            {state.hands[0].map((t, i) => {
+              const isSelected = state.selectedTileIndex === i;
+              const isJustDrawn = i === lastDrawnIdx && state.currentTurn === 0;
+              const wScore = state.weights[i];
+              const isDefenseMode =
+                state.tacticalInfo?.stance === "defend" ||
+                state.tacticalInfo?.stance === "caution";
+              let badgeClass = "bg-slate-700 text-slate-200",
+                displayScore = "";
+
+              if (
+                wScore !== undefined &&
+                state.currentTurn === 0 &&
+                state.gameState !== "finished" &&
+                !state.isRiichi[0]
+              ) {
+                const minScore = Math.min(...Object.values(state.weights));
+                if (isDefenseMode) {
+                  displayScore = `危 ${wScore}%`;
+                  if (wScore <= 15)
+                    badgeClass =
+                      "bg-emerald-500 text-white font-bold ring-2 ring-emerald-300";
+                  else if (wScore >= 50)
+                    badgeClass = "bg-red-500 text-white font-bold";
+                  else badgeClass = "bg-yellow-500 text-white font-bold";
+                  if (Math.abs(wScore - minScore) < 0.05)
+                    badgeClass += " scale-110 -translate-y-1";
+                } else {
+                  if (wScore <= -1000) {
+                    displayScore = `聽牌`;
+                    if (Math.abs(wScore - minScore) < 0.05)
+                      badgeClass =
+                        "bg-emerald-500 text-white ring-2 ring-emerald-300 scale-110 -translate-y-1 font-bold";
+                  } else if (wScore >= 1000) {
+                    displayScore = `破聽`;
+                    badgeClass = "bg-red-500 text-white font-bold";
+                  } else {
+                    displayScore = wScore.toFixed(1);
+                    if (Math.abs(wScore - minScore) < 0.05)
+                      badgeClass =
+                        "bg-emerald-500 text-white ring-2 ring-emerald-300 scale-110 -translate-y-1 font-bold";
+                  }
+                }
+              }
+              return (
+                <div key={`p-${t}-${i}`} className="relative mt-2">
+                  {wScore !== undefined &&
+                    state.currentTurn === 0 &&
+                    !state.actionMenu &&
+                    state.gameState !== "finished" &&
+                    !state.isRiichi[0] && (
+                      <div
+                        className={`absolute -top-7 left-1/2 transform -translate-x-1/2 text-[10px] md:text-xs px-1.5 py-0.5 rounded shadow-sm z-20 font-mono whitespace-nowrap ${badgeClass}`}
+                      >
+                        {displayScore}
+                      </div>
+                    )}
+                  <Tile
+                    tile={t}
+                    isSelected={isSelected && !state.isRiichi[0]}
+                    isDora={checkDora(t)}
+                    isJustDrawn={isJustDrawn}
+                    onClick={() =>
+                      state.currentTurn === 0 &&
+                      !state.actionMenu &&
+                      state.gameState !== "finished" &&
+                      !state.isRiichi[0] &&
+                      actions.setSelectedTileIndex(i)
+                    }
+                  />
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="flex justify-between items-center h-12 mt-6">
+            <div className="text-xs text-emerald-100 bg-black/40 p-2 px-3 rounded-lg max-w-[50%] leading-tight border border-white/10 shadow-inner hidden md:block">
+              {state.currentTurn === 0 &&
+              !state.actionMenu &&
+              state.gameState !== "finished" &&
+              !state.isRiichi[0]
+                ? currentReason
+                : state.isRiichi[0]
+                ? "立直自動摸切中..."
+                : "等待進行中..."}
+            </div>
+            <div className="flex gap-2 ml-auto">
+              {state.canRiichi &&
+                !state.isRiichi[0] &&
+                state.currentTurn === 0 &&
+                !state.actionMenu &&
+                state.gameState !== "finished" && (
+                  <button
+                    onClick={() =>
+                      actions.setPendingRiichi(!state.pendingRiichi)
+                    }
+                    className={`px-5 py-2 rounded-full font-black shadow-lg transition-all flex items-center gap-1 animate-pulse ${
+                      state.pendingRiichi
+                        ? "bg-red-600 text-white scale-105"
+                        : "bg-white text-red-600 hover:bg-red-50 border-2 border-red-600"
+                    }`}
+                  >
+                    ⚡ {state.pendingRiichi ? "取消立直" : "立直!"}
+                  </button>
+                )}
+              {state.currentTurn === 0 &&
+                !state.actionMenu &&
+                state.gameState !== "finished" &&
+                !state.isRiichi[0] && (
+                  <button
+                    disabled={state.selectedTileIndex === null}
+                    onClick={() =>
+                      actions.discardTile(0, state.selectedTileIndex)
+                    }
+                    className={`px-8 py-2 rounded-full font-bold shadow-lg transition-all ${
+                      state.selectedTileIndex !== null
+                        ? (state.pendingRiichi
+                            ? "bg-red-600 hover:bg-red-500 text-white"
+                            : "bg-blue-600 hover:bg-blue-500 text-white") +
+                          " transform hover:scale-105"
+                        : "bg-slate-700 text-slate-400 cursor-not-allowed"
+                    }`}
+                  >
+                    {state.pendingRiichi ? "宣告並打出" : "打出"}
+                  </button>
+                )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 戰術雷達移至牌桌下方，避免畫面跳動影響出牌 */}
+      {state.currentTurn === 0 &&
+        state.gameState === "playing" &&
+        state.tacticalInfo && <TacticalAdvisor info={state.tacticalInfo} />}
+    </div>
+  );
+};
