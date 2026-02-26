@@ -1,107 +1,104 @@
-Markdown
+# 🀄 日麻三麻進階訓練場 (Sanma Advanced Trainer)
 
-# 🀄 三麻進階訓練場 (Sanma Trainer)
+一個專為日本麻將（三人麻將）愛好者打造的進階 Web 訓練與競技平台。
+整合了「防守權重分析」、「AI 模擬對局」與「即時多人連線錦標賽 (Duplicate Mahjong)」，旨在幫助玩家透過科學化的數據與實戰演練，提升攻防判斷能力。
 
-![React](https://img.shields.io/badge/React-18.x-blue?style=flat-square&logo=react)
-![Vite](https://img.shields.io/badge/Vite-5.x-646CFF?style=flat-square&logo=vite)
-![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-3.x-38B2AC?style=flat-square&logo=tailwind-css)
+![Version](https://img.shields.io/badge/version-v3.0.0-emerald)
+![React](https://img.shields.io/badge/React-18-blue)
+![Vite](https://img.shields.io/badge/Vite-5-purple)
+![Firebase](https://img.shields.io/badge/Firebase-Realtime_Database-yellow)
+![TailwindCSS](https://img.shields.io/badge/Tailwind-3-cyan)
 
-**三麻進階訓練場** 是一個專為日本三人麻將 (Sanma) 玩家設計的進階戰術與牌效訓練 Web 應用程式。本專案不僅提供對局模擬，更深度整合了頂尖玩家的數據理論，旨在透過系統化的視覺引導，幫助玩家克服防守迷思、建立以「局收支 (EV)」為核心的攻防判斷基準。
+## ✨ 核心特色 (Key Features)
 
-本系統的戰術演算法與理論嚴格萃取自兩大日麻權威文獻：
-* 《數據制勝：三人麻將》 (みーにん 著)
-* 《79博客》 (Seventh9 日麻教程)
+### 🏆 多人連線錦標賽 (Multiplayer Duplicate Tournament)
+採用「複式麻將 (Duplicate Mahjong)」概念，所有參賽者在相同的牌山 (Seed) 下與 AI 對戰，考驗誰能做出最佳的攻防選擇。
+* **即時對戰雷達 (PK Radar)**：透過 Firebase 即時同步，隨時掌握對手的巡目、立直狀態與思考時間。
+* **完善的防卡關機制**：支援斷線自動棄權、房主權限自動繼承 (Host Migration) 以及回合結束自動倒數推進。
+* **防作弊競技模式**：進入錦標賽後，系統會自動隱藏上帝視角的危險度標籤與進張提示，確保絕對公平。
 
----
+### 🤖 實戰對局模擬 (Simulation Mode)
+* **防守權重引擎**：根據敵方立直與鳴牌狀態，動態計算每張手牌的「危險度分數」與「進張效率」。
+* **常駐聽牌提示 (QoL)**：實裝精美的立直/默聽提示 UI，自動於手牌上方顯示目前的聽牌種類與寶牌發光特效。
+* **深度麻將引擎 (Mahjong Engine)**：支援 DFS 遞迴算番、一砲雙響 (Double Ron) 合併結算、流局罰符 (No-ten Bappu) 以及開槓/立直裏寶牌翻開機制。
 
-## ✨ 核心功能 (Features)
-
-* **🛡️ 攻防與局收支雷達**：內建動態防守權重評估引擎，將敵方立直、副露、拔北寶牌數量等威脅數據化，給出「強勢對攻」、「條件對攻」或「絕對防守」的實時建議。
-* **⚔️ 實戰對局模擬 (沙盒模式)**：
-  * 支援 1v2 的 AI 對戰模擬，可自訂 AI 難度（初級、進階、高段）與思考時間限制。
-  * 完整實裝三人麻將特殊規則，包含「拔北」、「自摸損」考量，以及完整的牌理計分引擎（支援 DFS 遞迴拆牌演算法）。
-* **📚 戰術與牌理百科**：將進階理論轉化為靜態視覺化百科，收錄從基礎面子到高階複合形（如中膨、兩嵌、煙囪形）的拆解邏輯。
-* **📱 響應式 UI 與原生滑動體驗**：App-like 介面，完美適配手機與桌面端。支援單行流暢的水平滑動 (Horizontal Scroll)，隱藏原生捲軸，解決小螢幕卡牌重疊與截斷問題。
-
----
-
-## 🛠️ 技術棧 (Tech Stack)
-
-* **前端框架**: [React.js](https://react.dev/) (Hooks 狀態管理)
-* **建置工具**: [Vite](https://vitejs.dev/)
-* **樣式處理**: [Tailwind CSS](https://tailwindcss.com/) + Custom CSS (隱藏捲軸等特殊處理)
-* **套件管理**: pnpm 
-* **繪圖系統**: 內部自建純 SVG 動態麻將牌繪圖系統，無外部圖片依賴。
-* **雲端開發**: 支援 `.devcontainer` 與 `.codesandbox` 快速啟動開發環境。
+### 📚 戰術分析與百科 (Knowledge Base)
+* **攻防與局收支**：收錄 11 種常見的三麻實戰情境，提供詳細的點數期望值分析。
+* **術語百科**：整理三麻特有的規則與日麻術語，適合新手快速查閱。
 
 ---
 
-## 📂 專案架構 (Project Structure)
+## 🏗️ 專案架構 (Architecture)
 
-專案已進行深度模組化重構，採用高內聚、低耦合的目錄設計，職責劃分明確：
+本專案採用 React + Vite 構建，狀態管理採用純 React Hooks，並搭配 Firebase Realtime Database 實現輕量級的後端同步。
 
 ```text
-sanma_trainer/
-├── .codesandbox/           # 雲端開發環境設定
-├── .devcontainer/          # VS Code DevContainers 設定檔
-├── public/                 # 靜態資源
-├── src/                    
-│   ├── assets/             # 圖片資源 (如 SVG icon)
-│   ├── components/         # 🧩 共用 UI 元件 (如 Tile 麻將牌、TacticalAdvisor 雷達面板)
-│   ├── constants/          # ⚙️ 系統常數設定 (mahjong.js)
-│   ├── data/               # 🗄️ 靜態資料庫 (changelogData.js, tacticsData.js)
-│   ├── engine/             # 🧠 核心算分與推演引擎 (MahjongEngine.js)
-│   ├── hooks/              # 🪝 自訂 React Hooks (useSimulation.js 負責 Game Loop)
-│   ├── views/              # 🖥️ 各大分頁視圖
-│   │   ├── Simulation/     # 實戰對局沙盒專屬視圖 (Setup, ActionMenu, Finished 等)
-│   │   ├── AttackDefenseTactics.jsx
-│   │   ├── ChangelogView.jsx
-│   │   └── TerminologyGlossary.jsx
-│   ├── App.jsx             # 🟢 應用程式外框、標頭與 Tab 導航切換
-│   ├── App.css / index.css # 全域樣式設定
-│   └── main.jsx            # React 掛載點
-├── eslint.config.js        # Linter 規範設定
-├── package.json            # npm 腳本
-├── pnpm-lock.yaml          # pnpm 依賴鎖定檔
-└── vite.config.js          # Vite 打包設定
+src/
+├── assets/            # 靜態資源與圖示
+├── components/        # 🎮 共用 UI 元件
+│   ├── Tile.jsx             # 高度客製化的麻將牌 SVG 元件
+│   ├── PKRadar.jsx          # 即時對戰雷達 UI
+│   └── TacticalAdvisor.jsx  # 戰術雷達與狀態提示
+├── constants/         # ⚙️ 靜態常數 (麻將對應表、預設值)
+├── data/              # 📖 靜態資料庫
+│   ├── changelogData.js     # 版本更新歷程
+│   └── tacticsData.js       # 攻防局收支題庫
+├── engine/            # 🧠 核心邏輯引擎
+│   └── MahjongEngine.js     # 掌管向聽數計算、理牌、算番、防守權重評估
+├── hooks/             # 🎣 自定義 Hooks (狀態管理核心)
+│   ├── useSimulation.js     # 掌管單局遊戲狀態 (發牌、摸切、鳴牌、結算)
+│   └── useTournamentSync.js # 掌管 Firebase 房間資料即時監聽與同步
+├── services/          # 🌐 外部服務 API
+│   └── tournamentService.js # 封裝 Firebase 的建立/加入房間、分數上傳、房主轉移等操作
+├── utils/             # 🛠️ 工具函式
+│   ├── firebase.js          # Firebase 初始化與設定
+│   └── rng.js               # 亂數生成器 (用於產生牌山 Seed 與房間代碼)
+└── views/             # 🖥️ 主要頁面視圖
+    ├── Tournament/          # 錦標賽大廳、等待室、結算板
+    ├── Simulation/          # 實戰模擬沙盒 (含 ActionMenu, 結算畫面)
+    ├── AttackDefenseTactics.jsx
+    └── TerminologyGlossary.jsx
 
-🚀 快速開始 (Getting Started)
-前置需求
+🔄 資料流設計 (Data Flow)
 
-請確保您的開發環境已安裝 Node.js 以及 pnpm。
-安裝與運行
+    單機沙盒：完全依賴 useSimulation 在 Client-side 運作，結合 MahjongEngine 實現零延遲的 AI 對弈與算分。
 
-    複製專案到本地
-    Bash
+    錦標賽連線：
 
-    git clone <你的_REPO_URL>
-    cd sanma_trainer
+        useTournamentSync 負責單向接收 Firebase 的 players 與 state 更新，渲染 PK 雷達與排行榜。
 
-    安裝依賴套件
-    Bash
+        玩家的摸切動作觸發 useSimulation 的內部結算，隨後由 tournamentService 將結果 (submitRoundScore) 或即時動作 (updateLiveState) 單向推播至 Firebase。
 
-    pnpm install
+        透過共用 RNG Seed，確保在完全沒有 Server 端發牌的情況下，各個 Client 依然能生成完全一致的起手牌與牌山。
 
-    啟動開發伺服器
-    Bash
+🚀 本地啟動指南 (Setup & Installation)
+1. 安裝依賴 (Install Dependencies)
 
-    pnpm dev
+請確保您已安裝 Node.js。本專案推薦使用 pnpm 進行套件管理。
+Bash
 
-    開啟瀏覽器訪問控制台輸出的本地網址 (通常為 http://localhost:5173) 即可開始使用。
+npm install -g pnpm
+pnpm install
 
-🏷️ 版本控制原則 (Versioning)
+2. 環境變數設定 (Environment Variables)
 
-本專案更新歷程遵循 Semantic Versioning (語意化版本控制) 的 a.b.c 原則：
+請在專案根目錄建立一個 .env 檔案，並填入您的 Firebase 專案設定：
+程式碼片段
 
-    a (Major): 包含不向下兼容的修改 (Breaking Change) 或核心架構的重大翻新 (例如：模組化重構)。
+VITE_FIREBASE_API_KEY="your-api-key"
+VITE_FIREBASE_AUTH_DOMAIN="your-auth-domain"
+VITE_FIREBASE_DATABASE_URL="your-database-url"
+VITE_FIREBASE_PROJECT_ID="your-project-id"
+VITE_FIREBASE_STORAGE_BUCKET="your-storage-bucket"
+VITE_FIREBASE_MESSAGING_SENDER_ID="your-sender-id"
+VITE_FIREBASE_APP_ID="your-app-id"
 
-    b (Minor): 新增功能 (Feature) 或強化現有邏輯 (Enhance)。
+3. 啟動開發伺服器 (Start Dev Server)
+Bash
 
-    c (Patch): 錯誤修復 (Bugfix) 與介面微調。
+pnpm dev
 
-詳細的歷史版本記錄可於應用程式內的 「更新歷程」 分頁中查看。
-⚖️ 聲明與版權 (Disclaimer & Credits)
+啟動後，開啟瀏覽器瀏覽 http://localhost:5173 即可開始使用。
+📜 授權條款 (License)
 
-    本系統採用之麻將理論與數據解析，其原著版權歸屬於《數據制勝：三人麻將》作者みーにん及《79博客》作者 Seventh9 所有。
-
-    本專案為獨立開發，僅供學術交流、演算法研究與個人訓練使用，請勿用於任何商業用途。
+本專案為開源專案，採用 MIT License 授權。歡迎提交 Issue 或 Pull Request 來幫助我們變得更好！
