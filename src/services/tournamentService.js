@@ -1,5 +1,5 @@
 // src/services/tournamentService.js
-import { db, ref, set, get, update } from "../utils/firebase";
+import { db, ref, set, get, update, onDisconnect } from "../utils/firebase";
 import { generateRoomSeed } from "../utils/rng"; // 使用我們 Phase 1 寫好的亂數產生器
 
 // 1. 建立錦標賽房間
@@ -22,6 +22,13 @@ export const createTournament = async (hostName, totalRounds = 3) => {
         totalScore: 0,
       },
     },
+  });
+
+  // 🌟 新增：房主註冊斷線自動棄權
+  const myPlayerRef = ref(db, `tournaments/${tid}/players/${hostId}`);
+  onDisconnect(myPlayerRef).update({
+    progress: "abandoned",
+    "liveState/action": "abandoned",
   });
 
   return { tid, myPlayerId: hostId };
@@ -53,6 +60,13 @@ export const joinTournament = async (tid, playerName) => {
       roundScores: Array(data.config.totalRounds).fill(0),
       totalScore: 0,
     },
+  });
+
+  // 🌟 新增：加入者註冊斷線自動棄權
+  const myPlayerRef = ref(db, `tournaments/${tid}/players/${newPlayerId}`);
+  onDisconnect(myPlayerRef).update({
+    progress: "abandoned",
+    "liveState/action": "abandoned",
   });
 
   return { tid, myPlayerId: newPlayerId };

@@ -1,5 +1,11 @@
 import React from "react";
-import { Trophy, Loader2, CheckCircle2, PlayCircle } from "lucide-react";
+import {
+  Trophy,
+  Loader2,
+  CheckCircle2,
+  PlayCircle,
+  XCircle,
+} from "lucide-react";
 import { advanceToNextRound } from "../../services/tournamentService";
 
 export default function RoundResultView({ tournamentData, myPlayerId, tid }) {
@@ -10,7 +16,10 @@ export default function RoundResultView({ tournamentData, myPlayerId, tid }) {
   );
   const currentRound = tournamentData.state.currentRound;
   const totalRounds = tournamentData.config.totalRounds;
-  const isAllFinished = players.every((p) => p.progress === "finished");
+  // 🌟 將 'abandoned' 也視為完賽條件，避免遊戲卡死
+  const isAllFinished = players.every(
+    (p) => p.progress === "finished" || p.progress === "abandoned"
+  );
 
   // 🌟 新增：取得目前玩家是不是房主，以及賽事代碼
   const isHost = tournamentData.players[myPlayerId]?.isHost;
@@ -47,6 +56,7 @@ export default function RoundResultView({ tournamentData, myPlayerId, tid }) {
             {players.map((p, idx) => {
               const isMe = p.name === tournamentData.players[myPlayerId]?.name;
               const isFinished = p.progress === "finished";
+              const isAbandoned = p.progress === "abandoned"; // 🌟 新增判斷
               const roundScore = p.roundScores[currentRound - 1] || 0;
 
               return (
@@ -65,9 +75,12 @@ export default function RoundResultView({ tournamentData, myPlayerId, tid }) {
                       </span>
                     )}
                   </td>
+                  {/* 如果棄權，分數改以灰色顯示，否則維持原本邏輯 */}
                   <td
                     className={`p-4 font-mono text-right font-bold ${
-                      roundScore > 0
+                      isAbandoned
+                        ? "text-slate-500"
+                        : roundScore > 0
                         ? "text-emerald-400"
                         : roundScore < 0
                         ? "text-red-400"
@@ -79,8 +92,13 @@ export default function RoundResultView({ tournamentData, myPlayerId, tid }) {
                   <td className="p-4 font-mono text-right font-black text-amber-400">
                     {p.totalScore}
                   </td>
+                  {/* 🌟 修改狀態欄，加入紅色棄權標示 */}
                   <td className="p-4 flex justify-center">
-                    {isFinished ? (
+                    {isAbandoned ? (
+                      <div className="flex items-center gap-1 text-red-500 font-bold text-xs bg-red-900/20 px-2 py-1 rounded">
+                        <XCircle size={14} /> 棄權
+                      </div>
+                    ) : isFinished ? (
                       <CheckCircle2 size={20} className="text-emerald-500" />
                     ) : (
                       <Loader2

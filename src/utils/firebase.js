@@ -8,6 +8,7 @@ import {
   onValue,
   update,
   child,
+  onDisconnect, // 🌟 加入這行
 } from "firebase/database";
 
 const firebaseConfig = {
@@ -24,4 +25,4 @@ const app = initializeApp(firebaseConfig);
 export const db = getDatabase(app);
 
 // 匯出常用方法供 Service 使用
-export { ref, set, get, onValue, update, child };
+export { ref, set, get, onValue, update, child, onDisconnect };

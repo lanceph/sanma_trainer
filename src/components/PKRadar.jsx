@@ -1,5 +1,5 @@
 import React from "react";
-import { Swords, Clock, Zap, User } from "lucide-react";
+import { Swords, Clock, Zap, User, UserX } from "lucide-react";
 
 export default function PKRadar({ tournamentData, myPlayerId }) {
   if (!tournamentData || !tournamentData.players) return null;
@@ -36,28 +36,45 @@ export default function PKRadar({ tournamentData, myPlayerId }) {
           };
           const isRiichi = live.action === "riichi";
           const isFinished = live.action === "finished";
+          // 🌟 2. 新增棄權判斷 (不管是 liveState 還是 progress 只要是 abandoned 就當作斷線)
+          const isAbandoned =
+            live.action === "abandoned" || p.progress === "abandoned";
 
           return (
+            // 🌟 3. 如果斷線了，整個區塊加上半透明與灰階效果 (opacity-50 grayscale)
             <div
               key={p.id}
               className={`p-2 flex flex-col gap-1 relative ${
                 isRiichi ? "bg-red-900/20" : ""
-              }`}
+              } ${isAbandoned ? "opacity-50 grayscale" : ""}`}
             >
               <div className="flex items-center justify-between text-xs">
                 <div
                   className={`font-bold flex items-center gap-1 ${
-                    isRiichi ? "text-red-400" : "text-slate-300"
+                    isRiichi
+                      ? "text-red-400"
+                      : isAbandoned
+                      ? "text-slate-500"
+                      : "text-slate-300"
                   }`}
                 >
-                  <User size={12} /> {p.name}
+                  {/* 🌟 4. 斷線換成 UserX 圖示 */}
+                  {isAbandoned ? <UserX size={12} /> : <User size={12} />}
+                  {p.name}
                 </div>
+
                 <div className="text-slate-400 text-[10px]">
-                  {isFinished ? "已完賽" : `第 ${live.turn} 巡`}
+                  {/* 🌟 5. 狀態文字顯示 */}
+                  {isAbandoned
+                    ? "已棄權 (斷線)"
+                    : isFinished
+                    ? "已完賽"
+                    : `第 ${live.turn} 巡`}
                 </div>
               </div>
 
-              {!isFinished && (
+              {/* 🌟 6. 只有在「沒完賽」且「沒棄權」的情況下，才顯示思考中與時間 */}
+              {!isFinished && !isAbandoned && (
                 <div className="flex items-center justify-between mt-1">
                   <div className="flex items-center gap-1">
                     {isRiichi ? (
