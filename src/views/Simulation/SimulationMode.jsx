@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Cpu, User } from "lucide-react";
 import Tile from "../../components/Tile";
 import TacticalAdvisor from "../../components/TacticalAdvisor";
@@ -9,8 +9,28 @@ import { SimActionMenu } from "./SimActionMenu";
 import { MahjongEngine } from "../../engine/MahjongEngine";
 import { TILE_LABELS, getTileName } from "../../constants/mahjong";
 
-export const SimulationMode = () => {
+export const SimulationMode = ({ tournamentConfig }) => {
   const { state, actions } = useSimulation();
+
+  // 🌟 新增：自動同步錦標賽設定，並自動開始遊戲
+  useEffect(() => {
+    // 只有在初始設定畫面 (setup) 且有錦標賽參數時才執行
+    if (tournamentConfig && state.gameState === "setup") {
+      // 1. 如果設定裡的 Seed 跟錦標賽目前的 Seed 不一樣，先更新設定
+      if (state.config.seed !== tournamentConfig.seed) {
+        actions.setConfig((prev) => ({
+          ...prev,
+          seed: tournamentConfig.seed,
+          tournamentConfig: tournamentConfig,
+          timeLimit: 15, // 強制鎖定思考時間 15 秒
+        }));
+      }
+      // 2. 確定 Seed 已經更新進 config 後，立刻自動開始遊戲！
+      else if (state.config.seed === tournamentConfig.seed) {
+        actions.startGame();
+      }
+    }
+  }, [tournamentConfig, state.gameState, state.config.seed, actions]);
 
   if (state.gameState === "setup")
     return <SimSetupView state={state} actions={actions} />;

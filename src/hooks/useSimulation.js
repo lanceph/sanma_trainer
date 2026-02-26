@@ -1,5 +1,9 @@
 import { useState, useEffect, useCallback } from "react";
 import { MahjongEngine } from "../engine/MahjongEngine";
+import {
+  submitRoundScore,
+  updateLiveState,
+} from "../services/tournamentService";
 
 export const useSimulation = () => {
   const [config, setConfig] = useState({
@@ -114,6 +118,12 @@ export const useSimulation = () => {
     if (currentDeck.length === 0) {
       setGameState("finished");
       setWinner({ type: "draw" });
+
+      // ★ 新增：錦標賽流局上傳分數 (流局暫定得失分為 0，你也可以擴充罰符邏輯)
+      if (config.tournamentConfig?.tid) {
+        const { tid, myPlayerId, currentRound } = config.tournamentConfig;
+        submitRoundScore(tid, myPlayerId, currentRound, 0);
+      }
       return;
     }
     let d = [...currentDeck],
@@ -344,6 +354,31 @@ export const useSimulation = () => {
       remainDeck
     );
     setScoreResult(scoreData);
+
+    // ★ 新增：錦標賽和牌/放銃上傳分數
+    if (config.tournamentConfig?.tid) {
+      const { tid, myPlayerId, currentRound } = config.tournamentConfig;
+      let myScoreChange = 0;
+
+      if (playerIdx === 0) {
+        // 情況 A：玩家自己和牌 (加分)
+        myScoreChange = scoreData.total || 0;
+      } else if (fromIdx === 0) {
+        // 情況 B：玩家放銃給 AI (扣分)
+        myScoreChange = -(scoreData.total || 0);
+      } else if (type === "tsumo") {
+        // 情況 C：AI 自摸，玩家被扣點 (扣除非莊家或莊家的支付額)
+        // 這裡依照你的 calculateScore 回傳結構來決定，暫時用扣除 dealerPay/nonDealerPay 代表
+        myScoreChange = -(
+          scoreData.dealerPay ||
+          scoreData.nonDealerPay ||
+          Math.floor(scoreData.total / 2) ||
+          0
+        );
+      }
+
+      submitRoundScore(tid, myPlayerId, currentRound, myScoreChange);
+    }
   };
 
   const executeAction = (action) => {
