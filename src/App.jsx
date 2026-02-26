@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   ShieldAlert,
   Library,
@@ -18,7 +18,7 @@ import { ChangelogView } from "./views/ChangelogView";
 import TournamentManager from "./views/Tournament/TournamentManager";
 import { abandonTournament } from "./services/tournamentService";
 
-const AppHeader = () => (
+const AppHeader = ({ isMuted, toggleMute }) => (
   <header className="bg-slate-900 text-white p-4 shadow-md z-50 shrink-0 relative">
     <div className="max-w-5xl mx-auto flex justify-between items-center">
       <h1 className="text-xl md:text-2xl font-bold flex items-center gap-3">
@@ -38,6 +38,18 @@ const AppHeader = () => (
       <div className="text-xs md:text-sm text-slate-400 hidden md:block">
         基於《數據制勝》與《79博客》理論
       </div>
+      {/* 🌟 新增：全域靜音切換按鈕 */}
+      <button
+        onClick={toggleMute}
+        className="p-2 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors"
+        title={isMuted ? "取消靜音" : "靜音"}
+      >
+        {isMuted ? (
+          <VolumeX size={20} className="text-red-400" />
+        ) : (
+          <Volume2 size={20} className="text-emerald-400" />
+        )}
+      </button>
     </div>
   </header>
 );
@@ -65,6 +77,9 @@ const TabNavigation = ({ tabs, activeTab, setActiveTab }) => (
   </div>
 );
 
+// 🌟 新增：建立一個全域的 AudioContext，讓底下的遊戲可以知道現在是不是靜音
+export const AudioContext = React.createContext({ isMuted: false });
+
 export default function App() {
   const [activeTab, setActiveTab] = useState("tactics");
   // 🌟 1. 新增一個 State 來記錄目前是不是卡在錦標賽裡面
@@ -73,6 +88,21 @@ export default function App() {
     tid: null,
     myPlayerId: null,
   });
+
+  // 🌟 新增：音效靜音狀態，預設從 localStorage 讀取 (如果沒設定過，預設為 false 有聲音)
+  const [isMuted, setIsMuted] = useState(() => {
+    const saved = localStorage.getItem("sanma_muted");
+    return saved === "true";
+  });
+
+  // 🌟 新增：當狀態改變時，存回 localStorage
+  const toggleMute = () => {
+    setIsMuted((prev) => {
+      const newVal = !prev;
+      localStorage.setItem("sanma_muted", String(newVal));
+      return newVal;
+    });
+  };
 
   // 🌟 2. 實作攔截分頁切換的邏輯
   const handleTabSwitch = async (targetTabId) => {
@@ -120,26 +150,28 @@ export default function App() {
 
   return (
     <div className="h-screen w-screen bg-slate-100 font-sans text-slate-900 flex flex-col overflow-hidden">
-      <AppHeader />
-      {/* 🌟 3. 將原本的 setActiveTab 換成我們包裝過的 handleTabSwitch */}
+      {/* 🌟 傳遞屬性給 Header */}
+      <AppHeader isMuted={isMuted} toggleMute={toggleMute} />
       <TabNavigation
         tabs={TABS}
         activeTab={activeTab}
         setActiveTab={handleTabSwitch}
       />
 
-      <main className="flex-1 overflow-y-auto w-full touch-pan-y">
-        <div className="max-w-5xl mx-auto px-2 md:px-4 py-6 pb-24">
-          {activeTab === "simulation" && <SimulationMode />}
-          {/* 🌟 4. 把 onContextUpdate 傳給 Manager */}
-          {activeTab === "tournamentLobby" && (
-            <TournamentManager onContextUpdate={setTournamentContext} />
-          )}
-          {activeTab === "tactics" && <AttackDefenseTactics />}
-          {activeTab === "terminology" && <TerminologyGlossary />}
-          {activeTab === "changelog" && <ChangelogView />}
-        </div>
-      </main>
+      {/* 🌟 用 AudioContext 包住主要內容區 */}
+      <AudioContext.Provider value={{ isMuted }}>
+        <main className="flex-1 overflow-y-auto w-full touch-pan-y">
+          <div className="max-w-5xl mx-auto px-2 md:px-4 py-6 pb-24">
+            {activeTab === "tactics" && <AttackDefenseTactics />}
+            {activeTab === "terminology" && <TerminologyGlossary />}
+            {activeTab === "simulation" && <SimulationMode />}
+            {activeTab === "changelog" && <ChangelogView />}
+            {activeTab === "tournamentLobby" && (
+              <TournamentManager onContextUpdate={setTournamentContext} />
+            )}
+          </div>
+        </main>
+      </AudioContext.Provider>
     </div>
   );
 }
