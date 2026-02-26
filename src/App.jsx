@@ -101,6 +101,8 @@ export default function App() {
   };
 
   const TABS = [
+    { id: "simulation", icon: Swords, label: "實戰對局模擬", color: "blue" },
+    { id: "tournamentLobby", icon: Trophy, label: "多人PK賽", color: "red" },
     {
       id: "tactics",
       icon: ShieldAlert,
@@ -113,9 +115,7 @@ export default function App() {
       label: "術語與牌理百科",
       color: "purple",
     },
-    { id: "simulation", icon: Swords, label: "實戰對局模擬", color: "blue" },
     { id: "changelog", icon: History, label: "更新歷程", color: "slate" },
-    { id: "tournamentLobby", icon: Trophy, label: "多人PK賽", color: "red" },
   ];
 
   return (
@@ -130,15 +130,14 @@ export default function App() {
 
       <main className="flex-1 overflow-y-auto w-full touch-pan-y">
         <div className="max-w-5xl mx-auto px-2 md:px-4 py-6 pb-24">
-          {activeTab === "tactics" && <AttackDefenseTactics />}
-          {activeTab === "terminology" && <TerminologyGlossary />}
           {activeTab === "simulation" && <SimulationMode />}
-          {activeTab === "changelog" && <ChangelogView />}
-
           {/* 🌟 4. 把 onContextUpdate 傳給 Manager */}
           {activeTab === "tournamentLobby" && (
             <TournamentManager onContextUpdate={setTournamentContext} />
           )}
+          {activeTab === "tactics" && <AttackDefenseTactics />}
+          {activeTab === "terminology" && <TerminologyGlossary />}
+          {activeTab === "changelog" && <ChangelogView />}
         </div>
       </main>
     </div>
