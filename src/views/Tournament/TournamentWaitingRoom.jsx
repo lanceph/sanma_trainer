@@ -9,7 +9,14 @@ export default function TournamentWaitingRoom({ tid, myPlayerId, data }) {
   const isHost = myData?.isHost;
 
   const handleStart = async () => {
-    if (players.length < 1) return alert("至少需要 1 人才能開始 (單人測試)");
+    // 🌟 修改這裡：加入單人模式的 Confirm 警告
+    if (players.length === 1) {
+      const confirmSingle = window.confirm(
+        "目前只有您 1 人！\n若按下確定，將作為「單人錦標賽練習模式」開始 (對手將皆為 AI)。\n\n確定要開始嗎？"
+      );
+      if (!confirmSingle) return; // 如果玩家按取消，就不要開始
+    }
+
     await startTournament(tid);
   };
 

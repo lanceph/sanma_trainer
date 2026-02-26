@@ -1,17 +1,40 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import TournamentLobby from "./TournamentLobby";
 import TournamentWaitingRoom from "./TournamentWaitingRoom";
+import RoundResultView from "./RoundResultView";
 import { useTournamentSync } from "../../hooks/useTournamentSync";
 import { SimulationMode } from "../Simulation/SimulationMode";
 import PKRadar from "../../components/PKRadar";
-import RoundResultView from "./RoundResultView";
 
-export default function TournamentManager() {
+export default function TournamentManager({ onContextUpdate }) {
   const [tid, setTid] = useState(null);
   const [myPlayerId, setMyPlayerId] = useState(null);
 
-  // 透過剛才寫好的 Hook 監聽這個房間的狀態
+  // 透過 Hook 監聽這個房間的狀態
   const tournamentData = useTournamentSync(tid);
+
+  // ==========================================
+  // 🌟 修正：把 useEffect 移到所有的 return 前面！(最上層)
+  // ==========================================
+  useEffect(() => {
+    if (onContextUpdate) {
+      // 因為 tournamentData 可能還是 null，這裡要用 ?. 安全讀取
+      const status = tournamentData?.state?.status;
+      const myProgress = tournamentData?.players?.[myPlayerId]?.progress;
+
+      const isInRoom = !!(
+        tid &&
+        status &&
+        status !== "finished" &&
+        myProgress !== "abandoned"
+      );
+      onContextUpdate({ isInRoom, tid, myPlayerId });
+    }
+  }, [tid, tournamentData, myPlayerId, onContextUpdate]);
+
+  // ==========================================
+  // 下面開始才是條件渲染 (Conditional Rendering)
+  // ==========================================
 
   // 1. 如果還沒有加入房間，顯示大廳
   if (!tid || !tournamentData) {
@@ -25,10 +48,11 @@ export default function TournamentManager() {
     );
   }
 
+  // 確定有資料後，再把它們解構出來給下面用
   const status = tournamentData.state?.status;
   const myProgress = tournamentData.players[myPlayerId]?.progress;
 
-  // 2. 如果賽事徹底結束，顯示最終總排名 (這裡為了簡化，直接重用結算板，只要把文字改掉就好)
+  // 2. 如果賽事徹底結束，顯示最終總排名
   if (status === "finished") {
     return (
       <div className="text-center mt-10">

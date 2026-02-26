@@ -12,7 +12,7 @@ export const createTournament = async (hostName, totalRounds = 3) => {
   const tournamentRef = ref(db, `tournaments/${tid}`);
   await set(tournamentRef, {
     config: { maxPlayers: 8, totalRounds, seeds },
-    state: { status: "lobby", currentRound: 1 },
+    state: { status: "lobby", currentRound: 1, createdAt: Date.now() },
     players: {
       [hostId]: {
         name: hostName,
@@ -42,6 +42,13 @@ export const joinTournament = async (tid, playerName) => {
   if (!snapshot.exists()) throw new Error("找不到該錦標賽代碼！");
 
   const data = snapshot.val();
+
+  // 🌟 新增：過期檢查 (24 小時 = 24 * 60 * 60 * 1000 毫秒)
+  const ONE_DAY = 24 * 60 * 60 * 1000;
+  if (data.state.createdAt && Date.now() - data.state.createdAt > ONE_DAY) {
+    throw new Error("此賽事房間已過期 (超過 24 小時)！請建立新賽事。");
+  }
+
   if (data.state.status !== "lobby")
     throw new Error("錦標賽已經開始或已結束！");
 
@@ -152,4 +159,13 @@ export const claimHost = async (tid, newHostId, oldHostId) => {
   }
   updates[`players/${newHostId}/isHost`] = true;
   await update(ref(db, `tournaments/${tid}`), updates);
+};
+
+// 8. 玩家主動棄權 (切換分頁或按退出按鈕時觸發)
+export const abandonTournament = async (tid, playerId) => {
+  if (!tid || !playerId) return;
+  await update(ref(db, `tournaments/${tid}/players/${playerId}`), {
+    progress: "abandoned",
+    "liveState/action": "abandoned",
+  });
 };

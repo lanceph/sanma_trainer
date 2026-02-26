@@ -16,6 +16,7 @@ import { TerminologyGlossary } from "./views/TerminologyGlossary";
 import { SimulationMode } from "./views/Simulation/SimulationMode";
 import { ChangelogView } from "./views/ChangelogView";
 import TournamentManager from "./views/Tournament/TournamentManager";
+import { abandonTournament } from "./services/tournamentService";
 
 const AppHeader = () => (
   <header className="bg-slate-900 text-white p-4 shadow-md z-50 shrink-0 relative">
@@ -66,6 +67,38 @@ const TabNavigation = ({ tabs, activeTab, setActiveTab }) => (
 
 export default function App() {
   const [activeTab, setActiveTab] = useState("tactics");
+  // 🌟 1. 新增一個 State 來記錄目前是不是卡在錦標賽裡面
+  const [tournamentContext, setTournamentContext] = useState({
+    isInRoom: false,
+    tid: null,
+    myPlayerId: null,
+  });
+
+  // 🌟 2. 實作攔截分頁切換的邏輯
+  const handleTabSwitch = async (targetTabId) => {
+    // 如果是從錦標賽切去別的地方，且正在房間內
+    if (
+      activeTab === "tournamentLobby" &&
+      targetTabId !== "tournamentLobby" &&
+      tournamentContext.isInRoom
+    ) {
+      const confirmLeave = window.confirm(
+        "🚨 警告！您目前正在錦標賽房間內！\n\n如果切換分頁，將視同「棄權」並直接退出比賽，確定要離開嗎？"
+      );
+
+      if (!confirmLeave) return; // 玩家按取消，什麼都不做，留在原畫面
+
+      // 玩家狠心按了確定，主動幫他宣告棄權
+      await abandonTournament(
+        tournamentContext.tid,
+        tournamentContext.myPlayerId
+      );
+      setTournamentContext({ isInRoom: false, tid: null, myPlayerId: null });
+    }
+
+    // 正常切換分頁
+    setActiveTab(targetTabId);
+  };
 
   const TABS = [
     {
@@ -88,18 +121,24 @@ export default function App() {
   return (
     <div className="h-screen w-screen bg-slate-100 font-sans text-slate-900 flex flex-col overflow-hidden">
       <AppHeader />
+      {/* 🌟 3. 將原本的 setActiveTab 換成我們包裝過的 handleTabSwitch */}
       <TabNavigation
         tabs={TABS}
         activeTab={activeTab}
-        setActiveTab={setActiveTab}
+        setActiveTab={handleTabSwitch}
       />
+
       <main className="flex-1 overflow-y-auto w-full touch-pan-y">
         <div className="max-w-5xl mx-auto px-2 md:px-4 py-6 pb-24">
           {activeTab === "tactics" && <AttackDefenseTactics />}
           {activeTab === "terminology" && <TerminologyGlossary />}
           {activeTab === "simulation" && <SimulationMode />}
           {activeTab === "changelog" && <ChangelogView />}
-          {activeTab === "tournamentLobby" && <TournamentManager />}
+
+          {/* 🌟 4. 把 onContextUpdate 傳給 Manager */}
+          {activeTab === "tournamentLobby" && (
+            <TournamentManager onContextUpdate={setTournamentContext} />
+          )}
         </div>
       </main>
     </div>
