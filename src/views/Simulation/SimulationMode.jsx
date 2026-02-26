@@ -177,131 +177,133 @@ export const SimulationMode = () => {
 
       <div className="bg-emerald-800 p-4 rounded-xl shadow-inner relative min-h-[500px] flex flex-col justify-between overflow-hidden">
         {/* Opponents Area */}
-        <div className="flex justify-between items-start">
-          <div
-            className={`p-2 rounded-lg ${
-              state.currentTurn === 2 && state.gameState !== "finished"
-                ? "bg-white/20 ring-2 ring-yellow-400"
-                : ""
-            }`}
-          >
-            <div className="text-white text-xs font-bold mb-1 flex items-center gap-2">
-              <Cpu size={12} />
-              上家 ({TILE_LABELS[state.context.ai2Wind]})
-              {state.isRiichi[2] && (
-                <span className="bg-red-600 text-white text-[10px] px-2 py-0.5 rounded shadow-sm animate-pulse">
-                  立直
-                </span>
+        <div className="w-full overflow-x-auto scrollbar-hide">
+          <div className="flex justify-between items-start min-w-[550px] md:min-w-full pb-2">
+            <div
+              className={`p-2 rounded-lg ${
+                state.currentTurn === 2 && state.gameState !== "finished"
+                  ? "bg-white/20 ring-2 ring-yellow-400"
+                  : ""
+              }`}
+            >
+              <div className="text-white text-xs font-bold mb-1 flex items-center gap-2">
+                <Cpu size={12} />
+                上家 ({TILE_LABELS[state.context.ai2Wind]})
+                {state.isRiichi[2] && (
+                  <span className="bg-red-600 text-white text-[10px] px-2 py-0.5 rounded shadow-sm animate-pulse">
+                    立直
+                  </span>
+                )}
+              </div>
+              <div className="flex gap-0.5 mb-1">{renderMelds(2)}</div>
+              {state.kitas[2].length > 0 && (
+                <div className="flex gap-0.5 mb-1 pl-1 border-l border-white/20">
+                  {state.kitas[2].map((t, i) => (
+                    <Tile
+                      key={`k2-${i}`}
+                      tile={t}
+                      small={true}
+                      isDora={true}
+                      className="!w-5 !h-8 md:!w-6 md:!h-9"
+                    />
+                  ))}
+                </div>
               )}
-            </div>
-            <div className="flex gap-0.5 mb-1">{renderMelds(2)}</div>
-            {state.kitas[2].length > 0 && (
-              <div className="flex gap-0.5 mb-1 pl-1 border-l border-white/20">
-                {state.kitas[2].map((t, i) => (
+              <div className="flex gap-0.5">
+                {state.hands[2].map((_, i) => (
                   <Tile
-                    key={`k2-${i}`}
-                    tile={t}
+                    key={i}
+                    faceDown={state.gameState === "playing"}
+                    tile={
+                      state.gameState === "finished" ? state.hands[2][i] : null
+                    }
+                    isDora={
+                      state.gameState === "finished"
+                        ? checkDora(state.hands[2][i])
+                        : false
+                    }
                     small={true}
-                    isDora={true}
-                    className="!w-5 !h-8 md:!w-6 md:!h-9"
+                    className="!w-5 !h-8 md:!w-6 md:!h-9 !border-b-2"
                   />
                 ))}
               </div>
-            )}
-            <div className="flex gap-0.5">
-              {state.hands[2].map((_, i) => (
-                <Tile
-                  key={i}
-                  faceDown={state.gameState === "playing"}
-                  tile={
-                    state.gameState === "finished" ? state.hands[2][i] : null
-                  }
-                  isDora={
-                    state.gameState === "finished"
-                      ? checkDora(state.hands[2][i])
-                      : false
-                  }
-                  small={true}
-                  className="!w-5 !h-8 md:!w-6 md:!h-9 !border-b-2"
-                />
-              ))}
-            </div>
-            <div className="grid grid-cols-6 gap-0.5 md:gap-1 mt-2 w-max">
-              {state.rivers[2].map((t, i) => (
-                <Tile
-                  key={`r2-${i}`}
-                  tile={t}
-                  small={true}
-                  isRiver={true}
-                  isDora={checkDora(t)}
-                  className="!w-6 !h-9 md:!w-7 md:!h-10 !border-b-2 opacity-80"
-                />
-              ))}
-            </div>
-          </div>
-          <div
-            className={`p-2 rounded-lg text-right flex flex-col items-end ${
-              state.currentTurn === 1 && state.gameState !== "finished"
-                ? "bg-white/20 ring-2 ring-yellow-400"
-                : ""
-            }`}
-          >
-            <div className="text-white text-xs font-bold mb-1 justify-end flex items-center gap-2">
-              {state.isRiichi[1] && (
-                <span className="bg-red-600 text-white text-[10px] px-2 py-0.5 rounded shadow-sm animate-pulse">
-                  立直
-                </span>
-              )}
-              下家 ({TILE_LABELS[state.context.ai1Wind]})<Cpu size={12} />
-            </div>
-            <div className="flex gap-0.5 mb-1 justify-end">
-              {renderMelds(1)}
-            </div>
-            {state.kitas[1].length > 0 && (
-              <div className="flex gap-0.5 mb-1 pr-1 border-r border-white/20 justify-end">
-                {state.kitas[1].map((t, i) => (
+              <div className="grid grid-cols-6 gap-0.5 md:gap-1 mt-2 w-max">
+                {state.rivers[2].map((t, i) => (
                   <Tile
-                    key={`k1-${i}`}
+                    key={`r2-${i}`}
                     tile={t}
                     small={true}
-                    isDora={true}
-                    className="!w-5 !h-8 md:!w-6 md:!h-9"
+                    isRiver={true}
+                    isDora={checkDora(t)}
+                    className="!w-6 !h-9 md:!w-7 md:!h-10 !border-b-2 opacity-80"
                   />
                 ))}
               </div>
-            )}
-            <div className="flex gap-0.5 justify-end">
-              {state.hands[1].map((_, i) => (
-                <Tile
-                  key={i}
-                  faceDown={state.gameState === "playing"}
-                  tile={
-                    state.gameState === "finished" ? state.hands[1][i] : null
-                  }
-                  isDora={
-                    state.gameState === "finished"
-                      ? checkDora(state.hands[1][i])
-                      : false
-                  }
-                  small={true}
-                  className="!w-5 !h-8 md:!w-6 md:!h-9 !border-b-2"
-                />
-              ))}
             </div>
             <div
-              className="grid grid-cols-6 gap-0.5 md:gap-1 mt-2 w-max"
-              dir="ltr"
+              className={`p-2 rounded-lg text-right flex flex-col items-end ${
+                state.currentTurn === 1 && state.gameState !== "finished"
+                  ? "bg-white/20 ring-2 ring-yellow-400"
+                  : ""
+              }`}
             >
-              {state.rivers[1].map((t, i) => (
-                <Tile
-                  key={`r1-${i}`}
-                  tile={t}
-                  small={true}
-                  isRiver={true}
-                  isDora={checkDora(t)}
-                  className="!w-6 !h-9 md:!w-7 md:!h-10 !border-b-2 opacity-80"
-                />
-              ))}
+              <div className="text-white text-xs font-bold mb-1 justify-end flex items-center gap-2">
+                {state.isRiichi[1] && (
+                  <span className="bg-red-600 text-white text-[10px] px-2 py-0.5 rounded shadow-sm animate-pulse">
+                    立直
+                  </span>
+                )}
+                下家 ({TILE_LABELS[state.context.ai1Wind]})<Cpu size={12} />
+              </div>
+              <div className="flex gap-0.5 mb-1 justify-end">
+                {renderMelds(1)}
+              </div>
+              {state.kitas[1].length > 0 && (
+                <div className="flex gap-0.5 mb-1 pr-1 border-r border-white/20 justify-end">
+                  {state.kitas[1].map((t, i) => (
+                    <Tile
+                      key={`k1-${i}`}
+                      tile={t}
+                      small={true}
+                      isDora={true}
+                      className="!w-5 !h-8 md:!w-6 md:!h-9"
+                    />
+                  ))}
+                </div>
+              )}
+              <div className="flex gap-0.5 justify-end">
+                {state.hands[1].map((_, i) => (
+                  <Tile
+                    key={i}
+                    faceDown={state.gameState === "playing"}
+                    tile={
+                      state.gameState === "finished" ? state.hands[1][i] : null
+                    }
+                    isDora={
+                      state.gameState === "finished"
+                        ? checkDora(state.hands[1][i])
+                        : false
+                    }
+                    small={true}
+                    className="!w-5 !h-8 md:!w-6 md:!h-9 !border-b-2"
+                  />
+                ))}
+              </div>
+              <div
+                className="grid grid-cols-6 gap-0.5 md:gap-1 mt-2 w-max"
+                dir="ltr"
+              >
+                {state.rivers[1].map((t, i) => (
+                  <Tile
+                    key={`r1-${i}`}
+                    tile={t}
+                    small={true}
+                    isRiver={true}
+                    isDora={checkDora(t)}
+                    className="!w-6 !h-9 md:!w-7 md:!h-10 !border-b-2 opacity-80"
+                  />
+                ))}
+              </div>
             </div>
           </div>
         </div>
@@ -392,80 +394,89 @@ export const SimulationMode = () => {
             </div>
           )}
 
-          <div className="flex justify-center gap-1 md:gap-2 mb-2 flex-wrap mt-8">
-            {state.hands[0].map((t, i) => {
-              const isSelected = state.selectedTileIndex === i;
-              const isJustDrawn = i === lastDrawnIdx && state.currentTurn === 0;
-              const wScore = state.weights[i];
-              const isDefenseMode =
-                state.tacticalInfo?.stance === "defend" ||
-                state.tacticalInfo?.stance === "caution";
-              let badgeClass = "bg-slate-700 text-slate-200",
-                displayScore = "";
+          {/* 外層滾動容器：用負 margin (-mt-6) 抵銷掉上移的空間 */}
+          <div className="w-full overflow-x-auto scrollbar-hide -mt-6 mb-2">
+            {/* 重點修復：
+    1. pt-12 與 pb-6：把空間留在「可滑動容器」的內部，讓上方標籤與牌浮起時有足夠空間，不會被切頭。
+    2. justify-start md:justify-center：手機版(空間不足)靠左排，保證滑動正常；電腦版(空間充足)維持置中。
+    3. min-w-full w-max：保證寬度至少滿版（才能置中），且能根據內容無限撐大（才能滑動）。
+  */}
+            <div className="flex justify-start md:justify-center gap-1 md:gap-2 px-4 pt-12 pb-6 min-w-full w-max">
+              {state.hands[0].map((t, i) => {
+                const isSelected = state.selectedTileIndex === i;
+                const isJustDrawn =
+                  i === lastDrawnIdx && state.currentTurn === 0;
+                const wScore = state.weights[i];
+                const isDefenseMode =
+                  state.tacticalInfo?.stance === "defend" ||
+                  state.tacticalInfo?.stance === "caution";
+                let badgeClass = "bg-slate-700 text-slate-200",
+                  displayScore = "";
 
-              if (
-                wScore !== undefined &&
-                state.currentTurn === 0 &&
-                state.gameState !== "finished" &&
-                !state.isRiichi[0]
-              ) {
-                const minScore = Math.min(...Object.values(state.weights));
-                if (isDefenseMode) {
-                  displayScore = `危 ${wScore}%`;
-                  if (wScore <= 15)
-                    badgeClass =
-                      "bg-emerald-500 text-white font-bold ring-2 ring-emerald-300";
-                  else if (wScore >= 50)
-                    badgeClass = "bg-red-500 text-white font-bold";
-                  else badgeClass = "bg-yellow-500 text-white font-bold";
-                  if (Math.abs(wScore - minScore) < 0.05)
-                    badgeClass += " scale-110 -translate-y-1";
-                } else {
-                  if (wScore <= -1000) {
-                    displayScore = `聽牌`;
-                    if (Math.abs(wScore - minScore) < 0.05)
+                if (
+                  wScore !== undefined &&
+                  state.currentTurn === 0 &&
+                  state.gameState !== "finished" &&
+                  !state.isRiichi[0]
+                ) {
+                  const minScore = Math.min(...Object.values(state.weights));
+                  if (isDefenseMode) {
+                    displayScore = `危 ${wScore}%`;
+                    if (wScore <= 15)
                       badgeClass =
-                        "bg-emerald-500 text-white ring-2 ring-emerald-300 scale-110 -translate-y-1 font-bold";
-                  } else if (wScore >= 1000) {
-                    displayScore = `破聽`;
-                    badgeClass = "bg-red-500 text-white font-bold";
+                        "bg-emerald-500 text-white font-bold ring-2 ring-emerald-300";
+                    else if (wScore >= 50)
+                      badgeClass = "bg-red-500 text-white font-bold";
+                    else badgeClass = "bg-yellow-500 text-white font-bold";
+                    if (Math.abs(wScore - minScore) < 0.05)
+                      badgeClass += " scale-110 -translate-y-1";
                   } else {
-                    displayScore = wScore.toFixed(1);
-                    if (Math.abs(wScore - minScore) < 0.05)
-                      badgeClass =
-                        "bg-emerald-500 text-white ring-2 ring-emerald-300 scale-110 -translate-y-1 font-bold";
+                    if (wScore <= -1000) {
+                      displayScore = `聽牌`;
+                      if (Math.abs(wScore - minScore) < 0.05)
+                        badgeClass =
+                          "bg-emerald-500 text-white ring-2 ring-emerald-300 scale-110 -translate-y-1 font-bold";
+                    } else if (wScore >= 1000) {
+                      displayScore = `破聽`;
+                      badgeClass = "bg-red-500 text-white font-bold";
+                    } else {
+                      displayScore = wScore.toFixed(1);
+                      if (Math.abs(wScore - minScore) < 0.05)
+                        badgeClass =
+                          "bg-emerald-500 text-white ring-2 ring-emerald-300 scale-110 -translate-y-1 font-bold";
+                    }
                   }
                 }
-              }
-              return (
-                <div key={`p-${t}-${i}`} className="relative mt-2">
-                  {wScore !== undefined &&
-                    state.currentTurn === 0 &&
-                    !state.actionMenu &&
-                    state.gameState !== "finished" &&
-                    !state.isRiichi[0] && (
-                      <div
-                        className={`absolute -top-7 left-1/2 transform -translate-x-1/2 text-[10px] md:text-xs px-1.5 py-0.5 rounded shadow-sm z-20 font-mono whitespace-nowrap ${badgeClass}`}
-                      >
-                        {displayScore}
-                      </div>
-                    )}
-                  <Tile
-                    tile={t}
-                    isSelected={isSelected && !state.isRiichi[0]}
-                    isDora={checkDora(t)}
-                    isJustDrawn={isJustDrawn}
-                    onClick={() =>
+                return (
+                  <div key={`p-${t}-${i}`} className="relative mt-2">
+                    {wScore !== undefined &&
                       state.currentTurn === 0 &&
                       !state.actionMenu &&
                       state.gameState !== "finished" &&
-                      !state.isRiichi[0] &&
-                      actions.setSelectedTileIndex(i)
-                    }
-                  />
-                </div>
-              );
-            })}
+                      !state.isRiichi[0] && (
+                        <div
+                          className={`absolute -top-7 left-1/2 transform -translate-x-1/2 text-[10px] md:text-xs px-1.5 py-0.5 rounded shadow-sm z-20 font-mono whitespace-nowrap ${badgeClass}`}
+                        >
+                          {displayScore}
+                        </div>
+                      )}
+                    <Tile
+                      tile={t}
+                      isSelected={isSelected && !state.isRiichi[0]}
+                      isDora={checkDora(t)}
+                      isJustDrawn={isJustDrawn}
+                      onClick={() =>
+                        state.currentTurn === 0 &&
+                        !state.actionMenu &&
+                        state.gameState !== "finished" &&
+                        !state.isRiichi[0] &&
+                        actions.setSelectedTileIndex(i)
+                      }
+                    />
+                  </div>
+                );
+              })}
+            </div>
           </div>
 
           <div className="flex justify-between items-center h-12 mt-6">
