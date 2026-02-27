@@ -19,10 +19,12 @@ export const SimulationMode = ({ tournamentConfig }) => {
   const isTournament =
     !!tournamentConfig || !!state.config.tournamentConfig?.tid;
 
-  const { isMuted, setIsRiichiBgmActive } = React.useContext(AudioContext);
-  // 倒數音效可以稍微調小聲一點，免得太吵
+  // 🌟 1. 取得全域 AudioContext，並拿出 sfxVolume
+  const { setIsRiichiBgmActive, isMuted, sfxVolume } =
+    React.useContext(AudioContext);
+  // 🌟 把 volume 綁定為 sfxVolume
   const [playTick, { stop: stopTick }] = useSound(tickSound, {
-    volume: 0.5,
+    volume: sfxVolume,
     soundEnabled: !isMuted,
   });
 

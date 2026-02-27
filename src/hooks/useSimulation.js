@@ -16,22 +16,35 @@ import {
 } from "../services/tournamentService";
 
 export const useSimulation = () => {
-  // 🌟 取得目前是否靜音
-  const { isMuted } = useContext(AudioContext);
-  // 🌟 註冊音效 (soundEnabled 會自動幫我們處理靜音邏輯)
+  // 🌟 解構出全域 sfxVolume
+  const { isMuted, sfxVolume } = useContext(AudioContext);
+
+  // 🌟 將所有音效的 volume 綁定到 sfxVolume
   const [playDraw] = useSound(drawSound, {
     soundEnabled: !isMuted,
-    volume: 0.35,
+    volume: sfxVolume,
   });
   const [playDiscard] = useSound(discardSound, {
     soundEnabled: !isMuted,
-    volume: 0.35,
+    volume: sfxVolume,
   });
-  const [playClick] = useSound(clickSound, { soundEnabled: !isMuted });
-  // 🌟 新增：高光時刻音效
-  const [playRiichi] = useSound(riichiSound, { soundEnabled: !isMuted });
-  const [playTick] = useSound(tickSound, { soundEnabled: !isMuted });
-  const [playWin] = useSound(winSound, { soundEnabled: !isMuted });
+  const [playClick] = useSound(clickSound, {
+    soundEnabled: !isMuted,
+    volume: sfxVolume,
+  });
+  const [playRiichi] = useSound(riichiSound, {
+    soundEnabled: !isMuted,
+    volume: sfxVolume,
+  });
+
+  const [playTick] = useSound(tickSound, {
+    soundEnabled: !isMuted,
+    volume: sfxVolume,
+  });
+  const [playWin] = useSound(winSound, {
+    soundEnabled: !isMuted,
+    volume: sfxVolume,
+  });
 
   const [config, setConfig] = useState({
     aiDiff: 3,
