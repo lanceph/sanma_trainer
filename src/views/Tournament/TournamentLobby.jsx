@@ -1,4 +1,3 @@
-// src/views/Tournament/TournamentLobby.jsx
 import React, { useState } from "react";
 import {
   Swords,

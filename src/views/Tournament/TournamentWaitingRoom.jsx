@@ -1,5 +1,15 @@
-import React from "react";
-import { Users, Crown, PlayCircle, Loader2 } from "lucide-react";
+import React, { useState } from "react";
+import {
+  Users,
+  Play,
+  AlertCircle,
+  Crown,
+  LogOut,
+  Copy,
+  Check,
+  PlayCircle,
+  Loader2,
+} from "lucide-react";
 import { startTournament } from "../../services/tournamentService";
 
 export default function TournamentWaitingRoom({ tid, myPlayerId, data }) {
@@ -8,8 +18,22 @@ export default function TournamentWaitingRoom({ tid, myPlayerId, data }) {
   const myData = data.players[myPlayerId];
   const isHost = myData?.isHost;
 
+  // 🌟 新增：複製狀態管理
+  const [copied, setCopied] = useState(false);
+
+  // 🌟 新增：複製代碼函式
+  const handleCopyCode = async () => {
+    try {
+      await navigator.clipboard.writeText(tid);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000); // 2 秒後恢復原狀
+    } catch (err) {
+      console.error("複製失敗:", err);
+    }
+  };
+
   const handleStart = async () => {
-    // 🌟 修改這裡：加入單人模式的 Confirm 警告
+    // 🌟 這裡保留您原本的單人模式警告邏輯
     if (players.length === 1) {
       const confirmSingle = window.confirm(
         "目前只有您 1 人！\n若按下確定，將作為「單人錦標賽練習模式」開始 (對手將皆為 AI)。\n\n確定要開始嗎？"
@@ -23,15 +47,28 @@ export default function TournamentWaitingRoom({ tid, myPlayerId, data }) {
   return (
     <div className="max-w-xl mx-auto mt-10 bg-slate-900 p-8 rounded-2xl shadow-2xl border border-slate-700 text-white">
       <div className="text-center mb-8">
-        <h2 className="text-3xl font-black text-amber-400 tracking-widest mb-2">
+        <h2 className="text-3xl font-black text-amber-400 tracking-widest mb-4">
           賽事等待室
         </h2>
-        <p className="text-slate-400">
-          房間代碼:{" "}
-          <span className="text-white font-mono text-xl tracking-widest bg-slate-800 px-3 py-1 rounded ml-2">
+
+        {/* 🌟 修改這裡：將房間代碼與複製按鈕橫排置中 */}
+        <div className="flex items-center justify-center gap-3">
+          <span className="text-slate-400 font-bold">房間代碼:</span>
+          <span className="text-white font-mono text-2xl tracking-widest bg-slate-800 px-4 py-2 rounded-xl border border-slate-600 shadow-inner">
             {tid}
           </span>
-        </p>
+          <button
+            onClick={handleCopyCode}
+            className={`p-2.5 rounded-xl transition-all duration-300 shadow-md flex items-center justify-center ${
+              copied
+                ? "bg-emerald-500 text-white scale-110 shadow-emerald-500/40"
+                : "bg-slate-700 text-slate-300 hover:bg-slate-600 hover:text-white hover:scale-105"
+            }`}
+            title="複製房間代碼"
+          >
+            {copied ? <Check size={20} /> : <Copy size={20} />}
+          </button>
+        </div>
       </div>
 
       <div className="bg-slate-800 rounded-xl p-4 mb-6 border border-slate-700">

@@ -210,11 +210,6 @@ export const useSimulation = () => {
       // 將結果存入 winner state (未來可以讓 UI 顯示「流局聽牌/未聽牌」)
       setWinner({ type: "draw", bappuScore, tenpaiStatus });
 
-      // 3. 上傳錦標賽流局分數
-      if (config.tournamentConfig?.tid) {
-        const { tid, myPlayerId, currentRound } = config.tournamentConfig;
-        submitRoundScore(tid, myPlayerId, currentRound, bappuScore);
-      }
       return;
     }
 
@@ -499,34 +494,6 @@ export const useSimulation = () => {
     setHands((prev) => prev.map((h) => MahjongEngine.sortHand(h)));
 
     setScoreResult(scoreData);
-
-    // ★ 新增：錦標賽和牌/放銃上傳分數
-    if (config.tournamentConfig?.tid) {
-      const { tid, myPlayerId, currentRound } = config.tournamentConfig;
-      let myScoreChange = 0;
-
-      if (playerIdx === 0) {
-        // 情況 A：玩家自己和牌 (加分)
-        myScoreChange = scoreData.totalScore || 0; // 🌟 修正為 totalScore
-      } else if (fromIdx === 0) {
-        // 情況 B：玩家放銃給 AI (扣分)
-        myScoreChange = -(scoreData.totalScore || 0); // 🌟 修正為 totalScore
-      } else if (type === "tsumo") {
-        // 情況 C：AI 自摸，玩家被扣點
-        const amIDealer = activeCtx.sWind === "1z";
-        if (scoreData.payment?.all) {
-          myScoreChange = -scoreData.payment.all;
-        } else if (scoreData.payment?.dealer) {
-          myScoreChange = amIDealer
-            ? -scoreData.payment.dealer
-            : -scoreData.payment.nonDealer;
-        } else {
-          myScoreChange = -Math.floor((scoreData.totalScore || 0) / 2); // 🌟 修正為 totalScore
-        }
-      }
-
-      submitRoundScore(tid, myPlayerId, currentRound, myScoreChange);
-    }
   };
 
   // 🌟 新增/更新：雙響專用結算處理 (支援多張寶牌與裏寶牌)
@@ -589,12 +556,6 @@ export const useSimulation = () => {
     });
 
     setScoreResult({ isDouble: true, results: doubleScoreResults });
-
-    // 3. 上傳 Firebase 錦標賽分數
-    if (config.tournamentConfig?.tid) {
-      const { tid, myPlayerId, currentRound } = config.tournamentConfig;
-      submitRoundScore(tid, myPlayerId, currentRound, myScoreChange);
-    }
   };
 
   const executeAction = (action) => {
@@ -883,22 +844,6 @@ export const useSimulation = () => {
           if (config.aiDiff === 1)
             discardIdx = Math.floor(Math.random() * aiHand.length);
           else {
-            // const isThreatened =
-            //   isRiichi[(currentTurn + 1) % 3] ||
-            //   isRiichi[(currentTurn + 2) % 3];
-            // const aiStance = isThreatened ? "defend" : "attack";
-            // const aiThreats = isThreatened
-            //   ? [rivers[(currentTurn + 1) % 3], rivers[(currentTurn + 2) % 3]]
-            //   : [];
-            // const analysis = MahjongEngine.analyzeDiscard(
-            //   aiHand,
-            //   0,
-            //   fullCtx,
-            //   aiStance,
-            //   aiThreats,
-            //   openMelds[currentTurn].length
-            // );
-            // --- 替換為這段 ---
             const isThreatened =
               isRiichi[(currentTurn + 1) % 3] ||
               isRiichi[(currentTurn + 2) % 3];
@@ -1004,9 +949,38 @@ export const useSimulation = () => {
     }
   }, [gameState, rivers, isRiichi, timeLeft, config.tournamentConfig]);
 
-  // 🌟 新增：統一的結算推進動作
+  // 🌟 新增：由按鈕觸發的統一結算推進邏輯
   const proceedToNextPhase = () => {
-    setGameState("setup");
+    if (config.tournamentConfig?.tid) {
+      const { tid, myPlayerId, currentRound } = config.tournamentConfig;
+      let myScoreChange = 0;
+
+      if (winner?.type === "draw") {
+        myScoreChange = winner.bappuScore || 0;
+      } else if (scoreResult?.isDouble) {
+        scoreResult.results.forEach((r) => {
+          myScoreChange -= r.scoreData.totalScore || 0;
+        });
+      } else if (scoreResult) {
+        if (winner.playerIdx === 0) myScoreChange = scoreResult.totalScore || 0;
+        else if (winner.from === 0)
+          myScoreChange = -(scoreResult.totalScore || 0);
+        else if (winner.type === "tsumo") {
+          const amIDealer = context.sWind === "1z";
+          if (scoreResult.payment?.all)
+            myScoreChange = -scoreResult.payment.all;
+          else if (scoreResult.payment?.dealer)
+            myScoreChange = amIDealer
+              ? -scoreResult.payment.dealer
+              : -scoreResult.payment.nonDealer;
+          else myScoreChange = -Math.floor((scoreResult.totalScore || 0) / 2);
+        }
+      }
+      // 只有在按下按鈕後，才執行這行上傳動作！
+      submitRoundScore(tid, myPlayerId, currentRound, myScoreChange);
+    } else {
+      setGameState("setup");
+    }
   };
 
   return {
