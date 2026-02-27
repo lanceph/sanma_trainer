@@ -858,21 +858,71 @@ export const useSimulation = () => {
           if (config.aiDiff === 1)
             discardIdx = Math.floor(Math.random() * aiHand.length);
           else {
+            // const isThreatened =
+            //   isRiichi[(currentTurn + 1) % 3] ||
+            //   isRiichi[(currentTurn + 2) % 3];
+            // const aiStance = isThreatened ? "defend" : "attack";
+            // const aiThreats = isThreatened
+            //   ? [rivers[(currentTurn + 1) % 3], rivers[(currentTurn + 2) % 3]]
+            //   : [];
+            // const analysis = MahjongEngine.analyzeDiscard(
+            //   aiHand,
+            //   0,
+            //   fullCtx,
+            //   aiStance,
+            //   aiThreats,
+            //   openMelds[currentTurn].length
+            // );
+            // --- 替換為這段 ---
             const isThreatened =
               isRiichi[(currentTurn + 1) % 3] ||
               isRiichi[(currentTurn + 2) % 3];
-            const aiStance = isThreatened ? "defend" : "attack";
             const aiThreats = isThreatened
               ? [rivers[(currentTurn + 1) % 3], rivers[(currentTurn + 2) % 3]]
               : [];
-            const analysis = MahjongEngine.analyzeDiscard(
-              aiHand,
-              0,
-              fullCtx,
-              aiStance,
-              aiThreats,
-              openMelds[currentTurn].length
-            );
+
+            let analysis;
+            if (isThreatened) {
+              // 威脅狀態下，先用「進攻」姿態分析一次，看看 AI 自己是否已經聽牌
+              const attackAnalysis = MahjongEngine.analyzeDiscard(
+                aiHand,
+                0,
+                fullCtx,
+                "attack",
+                [],
+                openMelds[currentTurn].length
+              );
+
+              if (attackAnalysis.isTenpai) {
+                // 1. AI 自己也聽牌了，絕對不退縮，直接對攻！(容易放槍)
+                analysis = attackAnalysis;
+              } else {
+                // 2. 沒聽牌，給 AI 30% 的機率「頭鐵」硬推，70% 乖乖防守
+                const willPush = Math.random() > 0.3; // 調整此數值可控制 AI 的莽撞程度
+                if (willPush) {
+                  analysis = attackAnalysis;
+                } else {
+                  analysis = MahjongEngine.analyzeDiscard(
+                    aiHand,
+                    0,
+                    fullCtx,
+                    "defend",
+                    aiThreats,
+                    openMelds[currentTurn].length
+                  );
+                }
+              }
+            } else {
+              // 沒人立直，正常進攻
+              analysis = MahjongEngine.analyzeDiscard(
+                aiHand,
+                0,
+                fullCtx,
+                "attack",
+                [],
+                openMelds[currentTurn].length
+              );
+            }
 
             if (config.aiDiff === 2)
               discardIdx =

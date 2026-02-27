@@ -34,7 +34,13 @@ export const AudioContext = React.createContext({
 });
 
 // 🌟 修改 AppHeader：加入 activeTab 與 onGoHome Props，用來渲染「返回大廳」按鈕
-const AppHeader = ({ activeTab, onGoHome, isMuted, toggleMute, onOpenSettings }) => (
+const AppHeader = ({
+  activeTab,
+  onGoHome,
+  isMuted,
+  toggleMute,
+  onOpenSettings,
+}) => (
   <header className="bg-slate-900 text-white p-4 shadow-xl z-50 shrink-0 relative border-b border-slate-700">
     <div className="max-w-5xl mx-auto flex justify-between items-center">
       <div className="flex items-center gap-3 md:gap-4">
@@ -45,11 +51,14 @@ const AppHeader = ({ activeTab, onGoHome, isMuted, toggleMute, onOpenSettings })
             className="p-2 md:px-3 md:py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl transition-all shadow-lg border border-slate-600 flex items-center gap-2 group"
             title="返回大廳"
           >
-            <Home size={20} className="group-hover:-translate-y-0.5 transition-transform" /> 
+            <Home
+              size={20}
+              className="group-hover:-translate-y-0.5 transition-transform"
+            />
             <span className="hidden md:inline font-bold text-sm">返回大廳</span>
           </button>
         )}
-        
+
         <h1 className="text-xl md:text-2xl font-black flex items-center gap-3">
           <img
             src={appIcon}
@@ -97,7 +106,14 @@ const AppHeader = ({ activeTab, onGoHome, isMuted, toggleMute, onOpenSettings })
 );
 
 // 🌟 專屬的音訊設定彈出視窗 (Modal)
-const AudioSettingsModal = ({ isOpen, onClose, bgmVolume, setBgmVolume, sfxVolume, setSfxVolume }) => {
+const AudioSettingsModal = ({
+  isOpen,
+  onClose,
+  bgmVolume,
+  setBgmVolume,
+  sfxVolume,
+  setSfxVolume,
+}) => {
   if (!isOpen) return null;
   return (
     <div className="fixed inset-0 bg-black/60 z-[60] flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in">
@@ -109,7 +125,9 @@ const AudioSettingsModal = ({ isOpen, onClose, bgmVolume, setBgmVolume, sfxVolum
         <div className="mb-6">
           <label className="flex justify-between text-sm font-bold text-slate-300 mb-2">
             <span>背景音樂 (BGM)</span>
-            <span className="text-emerald-400">{Math.round(bgmVolume * 100)}%</span>
+            <span className="text-emerald-400">
+              {Math.round(bgmVolume * 100)}%
+            </span>
           </label>
           <input
             type="range"
@@ -125,7 +143,9 @@ const AudioSettingsModal = ({ isOpen, onClose, bgmVolume, setBgmVolume, sfxVolum
         <div className="mb-8">
           <label className="flex justify-between text-sm font-bold text-slate-300 mb-2">
             <span>遊戲音效 (SFX)</span>
-            <span className="text-emerald-400">{Math.round(sfxVolume * 100)}%</span>
+            <span className="text-emerald-400">
+              {Math.round(sfxVolume * 100)}%
+            </span>
           </label>
           <input
             type="range"
@@ -166,8 +186,10 @@ const GameLobby = ({ onSelectMode }) => {
     {
       id: "tournamentLobby",
       icon: Trophy,
-      label: "多人競技 (Tournament)",
-      desc: "建立房間與好友即時連線，在相同的牌山下進行複式麻將 PK。",
+      // 🌟 改名並加上 Duplicate 關鍵字
+      label: "複式競技賽 (Duplicate PK)",
+      // 🌟 重新撰寫敘述，明確告知是跟 AI 打，並比較成績
+      desc: "採用「複式麻將」賽制。所有玩家在各自的牌桌對戰相同的 AI 與牌山，考驗誰能在完全一樣的進張下做出最佳攻防判斷，獲取最高總分！",
       color: "from-red-600 to-rose-800",
       shadow: "shadow-red-500/30",
       colSpan: "md:col-span-1",
@@ -248,7 +270,6 @@ const GameLobby = ({ onSelectMode }) => {
   );
 };
 
-
 export default function App() {
   const [activeTab, setActiveTab] = useState("home"); // 🌟 預設啟動畫面改為 "home" 大廳
   const [tournamentContext, setTournamentContext] = useState({
@@ -257,14 +278,26 @@ export default function App() {
     myPlayerId: null,
   });
 
-  const [isMuted, setIsMuted] = useState(() => localStorage.getItem("sanma_muted") === "true");
-  const [bgmVolume, setBgmVolume] = useState(() => parseFloat(localStorage.getItem("sanma_bgm_vol")) || 0.15);
-  const [sfxVolume, setSfxVolume] = useState(() => parseFloat(localStorage.getItem("sanma_sfx_vol")) || 0.35);
+  const [isMuted, setIsMuted] = useState(
+    () => localStorage.getItem("sanma_muted") === "true"
+  );
+  const [bgmVolume, setBgmVolume] = useState(
+    () => parseFloat(localStorage.getItem("sanma_bgm_vol")) || 0.15
+  );
+  const [sfxVolume, setSfxVolume] = useState(
+    () => parseFloat(localStorage.getItem("sanma_sfx_vol")) || 0.35
+  );
   const [isRiichiBgmActive, setIsRiichiBgmActive] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
 
-  useEffect(() => localStorage.setItem("sanma_bgm_vol", bgmVolume), [bgmVolume]);
-  useEffect(() => localStorage.setItem("sanma_sfx_vol", sfxVolume), [sfxVolume]);
+  useEffect(
+    () => localStorage.setItem("sanma_bgm_vol", bgmVolume),
+    [bgmVolume]
+  );
+  useEffect(
+    () => localStorage.setItem("sanma_sfx_vol", sfxVolume),
+    [sfxVolume]
+  );
 
   const toggleMute = () => {
     setIsMuted((prev) => {
@@ -274,18 +307,37 @@ export default function App() {
     });
   };
 
-  const [playClick] = useSound(clickSound, { soundEnabled: !isMuted, volume: sfxVolume });
-  const [playLobby, { stop: stopLobby }] = useSound(lobbyBgm, { loop: true, volume: bgmVolume, soundEnabled: !isMuted });
-  const [playGame, { stop: stopGame }] = useSound(gameBgm, { loop: true, volume: bgmVolume, soundEnabled: !isMuted });
-  const [playRiichi, { stop: stopRiichi }] = useSound(riichiBgm, { loop: true, volume: bgmVolume, soundEnabled: !isMuted });
+  const [playClick] = useSound(clickSound, {
+    soundEnabled: !isMuted,
+    volume: sfxVolume,
+  });
+  const [playLobby, { stop: stopLobby }] = useSound(lobbyBgm, {
+    loop: true,
+    volume: bgmVolume,
+    soundEnabled: !isMuted,
+  });
+  const [playGame, { stop: stopGame }] = useSound(gameBgm, {
+    loop: true,
+    volume: bgmVolume,
+    soundEnabled: !isMuted,
+  });
+  const [playRiichi, { stop: stopRiichi }] = useSound(riichiBgm, {
+    loop: true,
+    volume: bgmVolume,
+    soundEnabled: !isMuted,
+  });
 
   useEffect(() => {
-    stopLobby(); stopGame(); stopRiichi();
+    stopLobby();
+    stopGame();
+    stopRiichi();
     if (isMuted) return;
 
     // 🌟 在遊戲內 (沙盒或連線中) 才播遊戲音樂，在大廳 (home 或 tournamentLobby 等待區) 播大廳音樂
-    const isPlayingGame = activeTab === "simulation" || (activeTab === "tournamentLobby" && tournamentContext.isInRoom);
-    
+    const isPlayingGame =
+      activeTab === "simulation" ||
+      (activeTab === "tournamentLobby" && tournamentContext.isInRoom);
+
     if (isPlayingGame) {
       if (isRiichiBgmActive) playRiichi();
       else playGame();
@@ -293,18 +345,41 @@ export default function App() {
       playLobby();
     }
 
-    return () => { stopLobby(); stopGame(); stopRiichi(); };
-  }, [activeTab, tournamentContext.isInRoom, isMuted, isRiichiBgmActive, playLobby, stopLobby, playGame, stopGame, playRiichi, stopRiichi, bgmVolume]);
+    return () => {
+      stopLobby();
+      stopGame();
+      stopRiichi();
+    };
+  }, [
+    activeTab,
+    tournamentContext.isInRoom,
+    isMuted,
+    isRiichiBgmActive,
+    playLobby,
+    stopLobby,
+    playGame,
+    stopGame,
+    playRiichi,
+    stopRiichi,
+    bgmVolume,
+  ]);
 
   const handleTabSwitch = async (targetTabId) => {
     playClick();
 
-    if (activeTab === "tournamentLobby" && targetTabId !== "tournamentLobby" && tournamentContext.isInRoom) {
+    if (
+      activeTab === "tournamentLobby" &&
+      targetTabId !== "tournamentLobby" &&
+      tournamentContext.isInRoom
+    ) {
       const confirmLeave = window.confirm(
         "🚨 警告！您目前正在錦標賽房間內！\n\n如果返回大廳，將視同「棄權」並直接退出比賽，確定要離開嗎？"
       );
       if (!confirmLeave) return;
-      await abandonTournament(tournamentContext.tid, tournamentContext.myPlayerId);
+      await abandonTournament(
+        tournamentContext.tid,
+        tournamentContext.myPlayerId
+      );
       setTournamentContext({ isInRoom: false, tid: null, myPlayerId: null });
     }
     setActiveTab(targetTabId);
@@ -312,7 +387,6 @@ export default function App() {
 
   return (
     <div className="h-screen w-screen font-sans text-slate-900 flex flex-col overflow-hidden relative bg-slate-100">
-      
       <AppHeader
         activeTab={activeTab}
         onGoHome={() => handleTabSwitch("home")}
@@ -331,21 +405,23 @@ export default function App() {
       />
 
       {/* 🌟 背景加上輕微的漸層感，讓畫面更立體 */}
-      <AudioContext.Provider value={{ isMuted, setIsRiichiBgmActive, sfxVolume }}>
+      <AudioContext.Provider
+        value={{ isMuted, setIsRiichiBgmActive, sfxVolume }}
+      >
         <main className="flex-1 overflow-y-auto w-full touch-pan-y relative bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-100 via-slate-200 to-slate-300">
           <div className="max-w-5xl mx-auto px-2 md:px-4 py-6 pb-24 h-full">
-            
             {/* 🌟 取代原本的 TabNavigation，首頁直接渲染大廳卡片 */}
-            {activeTab === "home" && <GameLobby onSelectMode={handleTabSwitch} />}
-            
+            {activeTab === "home" && (
+              <GameLobby onSelectMode={handleTabSwitch} />
+            )}
+
             {activeTab === "simulation" && <SimulationMode />}
             {activeTab === "tournamentLobby" && (
               <TournamentManager onContextUpdate={setTournamentContext} />
             )}
             {activeTab === "tactics" && <AttackDefenseTactics />}
-            {activeTab === "terminology" && <TerminologyGlossary />}            
+            {activeTab === "terminology" && <TerminologyGlossary />}
             {activeTab === "changelog" && <ChangelogView />}
-            
           </div>
         </main>
       </AudioContext.Provider>
