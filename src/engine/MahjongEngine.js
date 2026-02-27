@@ -1237,7 +1237,7 @@ export const MahjongEngine = {
     );
   },
 
-  _buildScoreResult: (yakuList, han, fu, isTsumo, isDealer, isYakuman) => {
+  _buildScoreResult: (fYaku, fHan, fu, isTsumo, isDealer, isYakuman) => {
     let b = 0,
       sStr = "";
     if (isYakuman) {
@@ -1269,39 +1269,27 @@ export const MahjongEngine = {
       }
     }
     let tS = 0;
+    let payment = {}; // 新增 payment 物件
+
     if (isTsumo) {
       if (isDealer) {
         const p = Math.ceil((b * 2) / 100) * 100;
         tS = p * 2;
         sStr += ` (${p} ALL)`;
-        // 🌟 新增 payment 屬性
-        return {
-          yakuList,
-          han,
-          fu,
-          totalScore: tS,
-          scoreStr: sStr,
-          payment: { all: p },
-        };
+        payment = { all: p };
       } else {
         const pD = Math.ceil((b * 2) / 100) * 100,
           pN = Math.ceil(b / 100) * 100;
         tS = pD + pN;
         sStr += ` (莊 ${pD} / 子 ${pN})`;
-        // 🌟 新增 payment 屬性
-        return {
-          yakuList,
-          han,
-          fu,
-          totalScore: tS,
-          scoreStr: sStr,
-          payment: { dealer: pD, nonDealer: pN },
-        };
+        payment = { dealer: pD, nonDealer: pN };
       }
     } else {
       tS = Math.ceil((b * (isDealer ? 6 : 4)) / 100) * 100;
       sStr += ` (${tS} 點)`;
-      return { yakuList, han, fu, totalScore: tS, scoreStr: sStr };
     }
+    
+    // 🌟 將 totalScore 與 payment 一併回傳
+    return { fYaku, fhan, fu, totalScore: tS, scoreStr: sStr, payment };
   },
 };

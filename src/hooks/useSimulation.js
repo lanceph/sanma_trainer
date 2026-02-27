@@ -507,19 +507,22 @@ export const useSimulation = () => {
 
       if (playerIdx === 0) {
         // 情況 A：玩家自己和牌 (加分)
-        myScoreChange = scoreData.total || 0;
+        myScoreChange = scoreData.totalScore || 0; // 🌟 修正為 totalScore
       } else if (fromIdx === 0) {
         // 情況 B：玩家放銃給 AI (扣分)
-        myScoreChange = -(scoreData.total || 0);
+        myScoreChange = -(scoreData.totalScore || 0); // 🌟 修正為 totalScore
       } else if (type === "tsumo") {
-        // 情況 C：AI 自摸，玩家被扣點 (扣除非莊家或莊家的支付額)
-        // 這裡依照你的 calculateScore 回傳結構來決定，暫時用扣除 dealerPay/nonDealerPay 代表
-        myScoreChange = -(
-          scoreData.dealerPay ||
-          scoreData.nonDealerPay ||
-          Math.floor(scoreData.total / 2) ||
-          0
-        );
+        // 情況 C：AI 自摸，玩家被扣點
+        const amIDealer = activeCtx.sWind === "1z";
+        if (scoreData.payment?.all) {
+          myScoreChange = -scoreData.payment.all;
+        } else if (scoreData.payment?.dealer) {
+          myScoreChange = amIDealer
+            ? -scoreData.payment.dealer
+            : -scoreData.payment.nonDealer;
+        } else {
+          myScoreChange = -Math.floor((scoreData.totalScore || 0) / 2); // 🌟 修正為 totalScore
+        }
       }
 
       submitRoundScore(tid, myPlayerId, currentRound, myScoreChange);
@@ -582,7 +585,7 @@ export const useSimulation = () => {
       doubleScoreResults.push({ playerIdx: idx, scoreData });
 
       // 玩家被雙響，扣分是兩家打點的總和
-      myScoreChange -= scoreData.total || 0;
+      myScoreChange -= scoreData.totalScore || 0; // 🌟 修正為 totalScore
     });
 
     setScoreResult({ isDouble: true, results: doubleScoreResults });
@@ -844,6 +847,28 @@ export const useSimulation = () => {
     if (gameState === "playing" && currentTurn !== 0 && !actionMenu) {
       const timer = setTimeout(() => {
         const aiHand = hands[currentTurn];
+
+        // 🌟 新增：AI 檢查起手是否卡了北風，優先執行拔北
+        if (aiHand.includes("4z")) {
+          const newHands = [...hands];
+          const newKitas = [...kitas];
+          newHands[currentTurn].splice(newHands[currentTurn].indexOf("4z"), 1);
+          newKitas[currentTurn] = [...newKitas[currentTurn], "4z"];
+          setHands(newHands);
+          setKitas(newKitas);
+          // 拔完北後補一張牌
+          drawTile(
+            currentTurn,
+            deck,
+            newHands,
+            newKitas,
+            rivers,
+            openMelds,
+            isRiichi
+          );
+          return; // 中斷此次判定，等補牌後重新觸發 AI 邏輯
+        }
+
         const fullCtx = {
           ...context,
           rivers,

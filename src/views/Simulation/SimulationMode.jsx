@@ -229,7 +229,8 @@ export const SimulationMode = ({ tournamentConfig }) => {
 
   return (
     <div className="space-y-4">
-      <div className="bg-slate-800 text-white p-3 md:p-4 rounded-xl shadow-lg flex flex-wrap justify-between items-center gap-4">
+      {/* 🌟 修改：簡化頂部資訊列，並支援顯示多張寶牌指示牌 */}
+      <div className="bg-slate-800 text-white p-3 md:p-4 rounded-xl shadow-lg flex justify-between items-center gap-4">
         <div className="flex gap-4 items-center">
           <div className="bg-slate-700 px-3 py-1 rounded-lg text-sm font-bold border border-slate-600">
             {TILE_LABELS[state.context.pWind]}風場 /{" "}
@@ -237,35 +238,20 @@ export const SimulationMode = ({ tournamentConfig }) => {
           </div>
           <div className="flex items-center gap-2">
             <span className="text-xs text-slate-400 font-bold">寶牌指示</span>
-            <Tile
-              tile={state.context.doraInd}
-              small={true}
-              className="!w-6 !h-9 !border-b-2"
-            />
+            <div className="flex gap-1">
+              {(Array.isArray(state.context.doraInd)
+                ? state.context.doraInd
+                : [state.context.doraInd]
+              ).map((d, i) => (
+                <Tile
+                  key={i}
+                  tile={d}
+                  small={true}
+                  className="!w-6 !h-9 !border-b-2"
+                />
+              ))}
+            </div>
           </div>
-        </div>
-        <div className="flex items-center gap-4">
-          <div className="text-sm font-bold text-slate-300">
-            剩餘{" "}
-            <span className="text-emerald-400 text-lg">
-              {state.deck.length}
-            </span>{" "}
-            張
-          </div>
-          {state.currentTurn === 0 &&
-            state.config.timeLimit > 0 &&
-            !state.actionMenu &&
-            !state.isRiichi[0] && (
-              <div
-                className={`text-lg font-mono font-bold ${
-                  state.timeLeft <= 5
-                    ? "text-red-400 animate-pulse"
-                    : "text-yellow-400"
-                }`}
-              >
-                ⏱ {state.timeLeft}s
-              </div>
-            )}
         </div>
       </div>
 
@@ -447,6 +433,32 @@ export const SimulationMode = ({ tournamentConfig }) => {
                 立直中
               </span>
             )}
+          </div>
+
+          {/* 🌟 新增：置右的牌山數量與倒數計時 */}
+          <div className="absolute -top-5 right-4 bg-slate-900 text-white text-xs px-3 py-1.5 rounded-full font-bold shadow-md flex items-center gap-3 z-30 border border-slate-700">
+            <div className="text-slate-300">
+              剩餘{" "}
+              <span className="text-emerald-400 font-black text-sm">
+                {state.deck.length}
+              </span>{" "}
+              張
+            </div>
+            {state.currentTurn === 0 &&
+              state.config.timeLimit > 0 &&
+              !state.actionMenu &&
+              !state.isRiichi[0] &&
+              state.gameState !== "finished" && (
+                <div
+                  className={`flex items-center gap-1 font-mono font-black ${
+                    state.timeLeft <= 5
+                      ? "text-red-400 animate-pulse"
+                      : "text-yellow-400"
+                  }`}
+                >
+                  ⏱ {state.timeLeft}s
+                </div>
+              )}
           </div>
 
           {(state.openMelds[0].length > 0 || state.kitas[0].length > 0) && (
