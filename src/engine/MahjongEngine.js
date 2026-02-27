@@ -1210,7 +1210,7 @@ export const MahjongEngine = {
       return count;
     };
 
-    // 🌟 修正：原本誤用了 yakuList 與 han，必須改為 fYaku 與 fHan
+    // 🌟 修正：此處正確使用 fYaku 與 fHan 收集寶牌
     // 表寶牌加番
     const doraHan = countDoraInHand(actualDoras);
     if (doraHan > 0) {
@@ -1237,7 +1237,8 @@ export const MahjongEngine = {
     );
   },
 
-  _buildScoreResult: (fYaku, fHan, fu, isTsumo, isDealer, isYakuman) => {
+  // 🌟 徹底修正：參數名稱改回 yakuList 與 han，以符合內部計算邏輯，並正確回傳
+  _buildScoreResult: (yakuList, han, fu, isTsumo, isDealer, isYakuman) => {
     let b = 0,
       sStr = "";
     if (isYakuman) {
@@ -1288,8 +1289,8 @@ export const MahjongEngine = {
       tS = Math.ceil((b * (isDealer ? 6 : 4)) / 100) * 100;
       sStr += ` (${tS} 點)`;
     }
-    
-    // 🌟 將 totalScore 與 payment 一併回傳
-    return { fYaku, fhan, fu, totalScore: tS, scoreStr: sStr, payment };
+
+    // 🌟 確保回傳的 key 是 yakuList 與 han，外部 useSimulation 才抓得到資料！
+    return { yakuList, han, fu, totalScore: tS, scoreStr: sStr, payment };
   },
 };

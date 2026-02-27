@@ -146,15 +146,23 @@ export const SimFinishedView = ({ state, actions }) => {
           </div>
         )}
 
-        {/* 避免在錦標賽中顯示「再來一局」的按鈕，可根據需求隱藏或保留 */}
-        {!state.config.tournamentConfig?.tid && (
-          <button
-            onClick={() => actions.setGameState("setup")}
-            className="px-10 py-4 bg-yellow-500 text-slate-900 rounded-full font-black text-lg hover:bg-yellow-400 transition transform hover:scale-105 shadow-lg shadow-yellow-500/20"
-          >
-            再來一局
-          </button>
-        )}
+        {/* 🌟 修改：錦標賽也能顯示確認按鈕，點擊後會呼叫 proceedToNextPhase 推進遊戲 */}
+        <button
+          onClick={() =>
+            actions.proceedToNextPhase
+              ? actions.proceedToNextPhase()
+              : actions.setGameState("setup")
+          }
+          className={`px-10 py-4 mt-4 rounded-full font-black text-lg transition transform hover:scale-105 shadow-lg w-full md:w-auto ${
+            state.config.tournamentConfig?.tid
+              ? "bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-500/20"
+              : "bg-yellow-500 hover:bg-yellow-400 text-slate-900 shadow-yellow-500/20"
+          }`}
+        >
+          {state.config.tournamentConfig?.tid
+            ? "✅ 確認結算並等待下一局"
+            : "再來一局"}
+        </button>
       </div>
     </div>
   );

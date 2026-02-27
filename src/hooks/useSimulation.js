@@ -1004,6 +1004,11 @@ export const useSimulation = () => {
     }
   }, [gameState, rivers, isRiichi, timeLeft, config.tournamentConfig]);
 
+  // 🌟 新增：統一的結算推進動作
+  const proceedToNextPhase = () => {
+    setGameState("setup");
+  };
+
   return {
     state: {
       config,
@@ -1037,6 +1042,7 @@ export const useSimulation = () => {
       discardTile,
       executeAction,
       setGameState,
+      proceedToNextPhase, // 🌟 記得匯出
     },
   };
 };

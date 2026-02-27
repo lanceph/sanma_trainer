@@ -480,7 +480,7 @@ export const SimulationMode = ({ tournamentConfig }) => {
             </div>
           )}
           {/* 🌟 加上 !isTournament，錦標賽不顯示進張預測 */}
-          {!isTournament && activeTenpaiInfo && (
+          {activeTenpaiInfo && (
             <div className="flex justify-center mb-6 animate-in fade-in slide-in-from-bottom-2">
               <div className="bg-emerald-900/80 border border-emerald-500 p-2 px-4 rounded-xl shadow-lg flex items-center gap-3">
                 <div className="bg-emerald-500 text-white text-xs font-black px-2 py-1 rounded">
@@ -610,13 +610,13 @@ export const SimulationMode = ({ tournamentConfig }) => {
                 }
                 return (
                   <div key={`p-${t}-${i}`} className="relative mt-2">
-                    {/* 🌟 加上 !isTournament，錦標賽不顯示權重標籤 */}
-                    {!isTournament &&
-                      wScore !== undefined &&
+                    {/* 🌟 錦標賽中僅允許顯示「聽牌」與「破聽」標籤，隱藏防守危險度以防作弊 */}
+                    {wScore !== undefined &&
                       state.currentTurn === 0 &&
                       !state.actionMenu &&
                       state.gameState !== "finished" &&
-                      !state.isRiichi[0] && (
+                      !state.isRiichi[0] &&
+                      (!isTournament || wScore <= -1000) && (
                         <div
                           className={`absolute -top-7 left-1/2 transform -translate-x-1/2 text-[10px] md:text-xs px-1.5 py-0.5 rounded shadow-sm z-20 font-mono whitespace-nowrap ${badgeClass}`}
                         >
