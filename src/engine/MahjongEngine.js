@@ -1210,19 +1210,20 @@ export const MahjongEngine = {
       return count;
     };
 
+    // 🌟 修正：原本誤用了 yakuList 與 han，必須改為 fYaku 與 fHan
     // 表寶牌加番
     const doraHan = countDoraInHand(actualDoras);
     if (doraHan > 0) {
-      yakuList.push({ name: "寶牌 (Dora)", han: doraHan });
-      han += doraHan;
+      fYaku.push({ name: "寶牌 (Dora)", han: doraHan });
+      fHan += doraHan;
     }
 
     // 裏寶牌加番 (僅限立直)
     if (isRiichi) {
       const uraHan = countDoraInHand(actualUraDoras);
       if (uraHan > 0) {
-        yakuList.push({ name: "裏寶牌 (Ura)", han: uraHan });
-        han += uraHan;
+        fYaku.push({ name: "裏寶牌 (Ura)", han: uraHan });
+        fHan += uraHan;
       }
     }
 
@@ -1273,16 +1274,34 @@ export const MahjongEngine = {
         const p = Math.ceil((b * 2) / 100) * 100;
         tS = p * 2;
         sStr += ` (${p} ALL)`;
+        // 🌟 新增 payment 屬性
+        return {
+          yakuList,
+          han,
+          fu,
+          totalScore: tS,
+          scoreStr: sStr,
+          payment: { all: p },
+        };
       } else {
         const pD = Math.ceil((b * 2) / 100) * 100,
           pN = Math.ceil(b / 100) * 100;
         tS = pD + pN;
         sStr += ` (莊 ${pD} / 子 ${pN})`;
+        // 🌟 新增 payment 屬性
+        return {
+          yakuList,
+          han,
+          fu,
+          totalScore: tS,
+          scoreStr: sStr,
+          payment: { dealer: pD, nonDealer: pN },
+        };
       }
     } else {
       tS = Math.ceil((b * (isDealer ? 6 : 4)) / 100) * 100;
       sStr += ` (${tS} 點)`;
+      return { yakuList, han, fu, totalScore: tS, scoreStr: sStr };
     }
-    return { yakuList, han, fu, totalScore: tS, scoreStr: sStr };
   },
 };

@@ -179,13 +179,11 @@ export const useSimulation = () => {
             kitas: currentKitas,
             openMeldCount: currentOpenMelds[i].length,
           };
-          const analysis = MahjongEngine.analyzeDiscard(
+          // 🌟 修正：直接丟 13 張牌給 getTenpaiUkeire 判斷，而不是用 analyzeDiscard
+          const analysis = MahjongEngine.getTenpaiUkeire(
             currentHands[i],
-            null,
-            mockCtx,
-            "attack",
-            [],
-            currentOpenMelds[i].length
+            currentOpenMelds[i].length,
+            mockCtx
           );
           tenpaiStatus[i] = analysis.isTenpai;
         }
@@ -914,6 +912,22 @@ export const useSimulation = () => {
     kitas,
     isRiichi,
   ]);
+
+  // 🌟 新增：將即時狀態同步至 Firebase
+  useEffect(() => {
+    if (config.tournamentConfig?.tid) {
+      const { tid, myPlayerId } = config.tournamentConfig;
+      if (gameState === "playing") {
+        // 玩家目前的巡目 = 捨牌堆的數量 + 1
+        const turn = rivers[0].length + 1;
+        const action = isRiichi[0] ? "riichi" : "playing";
+        updateLiveState(tid, myPlayerId, turn, action, timeLeft);
+      } else if (gameState === "finished") {
+        // 遊戲結束時，將狀態設為 finished
+        updateLiveState(tid, myPlayerId, rivers[0].length, "finished", 0);
+      }
+    }
+  }, [gameState, rivers, isRiichi, timeLeft, config.tournamentConfig]);
 
   return {
     state: {
