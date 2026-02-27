@@ -15,8 +15,14 @@ export const useSimulation = () => {
   // 🌟 取得目前是否靜音
   const { isMuted } = useContext(AudioContext);
   // 🌟 註冊音效 (soundEnabled 會自動幫我們處理靜音邏輯)
-  const [playDraw] = useSound(drawSound, { soundEnabled: !isMuted });
-  const [playDiscard] = useSound(discardSound, { soundEnabled: !isMuted });
+  const [playDraw] = useSound(drawSound, {
+    soundEnabled: !isMuted,
+    volume: 0.35,
+  });
+  const [playDiscard] = useSound(discardSound, {
+    soundEnabled: !isMuted,
+    volume: 0.35,
+  });
   const [playClick] = useSound(clickSound, { soundEnabled: !isMuted });
   const [config, setConfig] = useState({
     aiDiff: 3,

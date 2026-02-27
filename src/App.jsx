@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from "react";
 import useSound from "use-sound";
 import clickSound from "./assets/sounds/click.mp3";
+// 🌟 新增引入 BGM
+import lobbyBgm from "./assets/sounds/bgm-lobby.mp3";
+import gameBgm from "./assets/sounds/bgm-game.mp3";
 import {
   ShieldAlert,
   Library,
@@ -99,6 +102,17 @@ export default function App() {
 
   // 🌟 註冊點擊音效
   const [playClick] = useSound(clickSound, { soundEnabled: !isMuted });
+  // 🌟 註冊兩首 BGM，設定迴圈播放 (loop: true) 與較低的背景音量 (volume)
+  const [playLobby, { stop: stopLobby }] = useSound(lobbyBgm, {
+    loop: true,
+    volume: 0.15,
+    soundEnabled: !isMuted,
+  });
+  const [playGame, { stop: stopGame }] = useSound(gameBgm, {
+    loop: true,
+    volume: 0.15,
+    soundEnabled: !isMuted,
+  });
 
   // 🌟 新增：當狀態改變時，存回 localStorage
   const toggleMute = () => {
@@ -136,6 +150,42 @@ export default function App() {
     // 正常切換分頁
     setActiveTab(targetTabId);
   };
+
+  // 🌟 自動根據場景切換 BGM
+  useEffect(() => {
+    // 每次狀態改變時，先暫停所有音樂
+    stopLobby();
+    stopGame();
+
+    // 如果玩家設定了靜音，就什麼都不播
+    if (isMuted) return;
+
+    // 判斷玩家現在是不是正在「打牌」
+    // 條件：在對局模擬器中，或是在錦標賽且已經進入房間
+    const isPlayingGame =
+      activeTab === "simulation" ||
+      (activeTab === "tournamentLobby" && tournamentContext.isInRoom);
+
+    if (isPlayingGame) {
+      playGame();
+    } else {
+      playLobby();
+    }
+
+    // 當元件卸載或狀態改變時的清理動作
+    return () => {
+      stopLobby();
+      stopGame();
+    };
+  }, [
+    activeTab,
+    tournamentContext.isInRoom,
+    isMuted,
+    playLobby,
+    stopLobby,
+    playGame,
+    stopGame,
+  ]);
 
   const TABS = [
     { id: "simulation", icon: Swords, label: "實戰對局模擬", color: "blue" },
