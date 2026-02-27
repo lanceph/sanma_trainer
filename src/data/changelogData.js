@@ -1,6 +1,16 @@
 // --- 版本更新歷程資料 (Changelog Data) ---
 export const CHANGELOG_DATA = [
   {
+    version: "v3.1.1",
+    date: "錦標賽狀態同步與結算修正",
+    changes: [
+      "修正錦標賽 PK 雷達巡目停滯與顯示 undefined 的問題，實裝對局狀態即時同步機制 (Bugfix)",
+      "修正結算畫面因寶牌變數參照錯誤，導致引擎崩潰與畫面消失的問題 (Bugfix)",
+      "修正錦標賽和牌與雙響時未正確加分，以及 AI 自摸時玩家未正確依照莊閒扣分的問題 (Bugfix)",
+      "修正流局時因聽牌判定邏輯異常，導致已聽牌玩家遭系統誤判為未聽牌並扣除罰符的問題 (Bugfix)",
+    ],
+  },
+  {
     version: "v3.1.0",
     date: "音效與沉浸感全面升級",
     changes: [
