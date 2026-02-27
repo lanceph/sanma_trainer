@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { Cpu, User, Zap, Eye } from "lucide-react";
+import useSound from "use-sound";
+import { AudioContext } from "../../App"; // 取得靜音狀態
+import tickSound from "../../assets/sounds/tick.mp3";
 import Tile from "../../components/Tile";
 import TacticalAdvisor from "../../components/TacticalAdvisor";
 import { useSimulation } from "../../hooks/useSimulation";
@@ -15,6 +18,75 @@ export const SimulationMode = ({ tournamentConfig }) => {
   // 🌟 新增：判斷目前是否在錦標賽模式中
   const isTournament =
     !!tournamentConfig || !!state.config.tournamentConfig?.tid;
+
+  const { isMuted, setIsRiichiBgmActive } = React.useContext(AudioContext);
+  // 倒數音效可以稍微調小聲一點，免得太吵
+  const [playTick, { stop: stopTick }] = useSound(tickSound, {
+    volume: 0.5,
+    soundEnabled: !isMuted,
+  });
+
+  // 🌟 實作倒數警告音效
+  React.useEffect(() => {
+    if (
+      state.currentTurn === 0 &&
+      state.gameState === "playing" &&
+      !state.actionMenu &&
+      !state.isRiichi[0] &&
+      state.config.timeLimit > 0 &&
+      state.timeLeft === 5
+    ) {
+      playTick();
+    }
+  }, [
+    state.timeLeft,
+    state.currentTurn,
+    state.gameState,
+    state.actionMenu,
+    state.isRiichi,
+    state.config.timeLimit,
+    playTick,
+  ]);
+
+  // 🌟 新增：當玩家打出牌(換人)、立直、出現選單或遊戲結束時，立刻停止倒數音效
+  React.useEffect(() => {
+    if (
+      state.currentTurn !== 0 || // 已經不是我的回合了
+      state.isRiichi[0] || // 我已經立直了（會自動摸切，不該有倒數聲）
+      state.actionMenu || // 畫面上跳出吃碰槓選單了
+      state.gameState !== "playing" // 遊戲已經結束了
+    ) {
+      stopTick();
+    }
+
+    // 離開頁面時也確保聲音被關掉
+    return () => stopTick();
+  }, [
+    state.currentTurn,
+    state.isRiichi,
+    state.actionMenu,
+    state.gameState,
+    stopTick,
+  ]);
+
+  // 🌟 修正版：監控立直狀態，切換專屬 BGM (不包含 unmount 清理)
+  React.useEffect(() => {
+    if (setIsRiichiBgmActive) {
+      // 只要三家裡面有任何一家立直了
+      const hasAnyRiichi = state.isRiichi.some((r) => r);
+      // 且目前局數還在進行中 (如果有人和牌或流局，gameState 會變成 "finished")
+      const isStillPlaying = state.gameState === "playing";
+
+      setIsRiichiBgmActive(hasAnyRiichi && isStillPlaying);
+    }
+  }, [state.isRiichi, state.gameState, setIsRiichiBgmActive]);
+
+  // 🌟 獨立的清理 Effect：只有在「真正離開對局模擬頁面」時才觸發關閉
+  React.useEffect(() => {
+    return () => {
+      if (setIsRiichiBgmActive) setIsRiichiBgmActive(false);
+    };
+  }, [setIsRiichiBgmActive]);
 
   // 🌟 新增：自動同步錦標賽設定，並自動開始遊戲
   useEffect(() => {

@@ -4,6 +4,7 @@ import clickSound from "./assets/sounds/click.mp3";
 // 🌟 新增引入 BGM
 import lobbyBgm from "./assets/sounds/bgm-lobby.mp3";
 import gameBgm from "./assets/sounds/bgm-game.mp3";
+import riichiBgm from "./assets/sounds/bgm-riichi.mp3"; // 🌟 新增立直 BGM
 import {
   ShieldAlert,
   Library,
@@ -22,6 +23,12 @@ import { SimulationMode } from "./views/Simulation/SimulationMode";
 import { ChangelogView } from "./views/ChangelogView";
 import TournamentManager from "./views/Tournament/TournamentManager";
 import { abandonTournament } from "./services/tournamentService";
+
+// 🌟 建立全域 AudioContext
+export const AudioContext = React.createContext({
+  isMuted: false,
+  setIsRiichiBgmActive: () => {},
+});
 
 const AppHeader = ({ isMuted, toggleMute }) => (
   <header className="bg-slate-900 text-white p-4 shadow-md z-50 shrink-0 relative">
@@ -82,9 +89,6 @@ const TabNavigation = ({ tabs, activeTab, setActiveTab }) => (
   </div>
 );
 
-// 🌟 新增：建立一個全域的 AudioContext，讓底下的遊戲可以知道現在是不是靜音
-export const AudioContext = React.createContext({ isMuted: false });
-
 export default function App() {
   const [activeTab, setActiveTab] = useState("tactics");
   // 🌟 1. 新增一個 State 來記錄目前是不是卡在錦標賽裡面
@@ -100,6 +104,8 @@ export default function App() {
     return saved === "true";
   });
 
+  // 🌟 新增：追蹤現在是否需要播放立直 BGM
+  const [isRiichiBgmActive, setIsRiichiBgmActive] = useState(false);
   // 🌟 註冊點擊音效
   const [playClick] = useSound(clickSound, { soundEnabled: !isMuted });
   // 🌟 註冊兩首 BGM，設定迴圈播放 (loop: true) 與較低的背景音量 (volume)
@@ -109,6 +115,12 @@ export default function App() {
     soundEnabled: !isMuted,
   });
   const [playGame, { stop: stopGame }] = useSound(gameBgm, {
+    loop: true,
+    volume: 0.15,
+    soundEnabled: !isMuted,
+  });
+  // 🌟 註冊立直 BGM
+  const [playRiichi, { stop: stopRiichi }] = useSound(riichiBgm, {
     loop: true,
     volume: 0.15,
     soundEnabled: !isMuted,
@@ -156,6 +168,7 @@ export default function App() {
     // 每次狀態改變時，先暫停所有音樂
     stopLobby();
     stopGame();
+    stopRiichi(); // 🌟 記得暫停立直 BGM
 
     // 如果玩家設定了靜音，就什麼都不播
     if (isMuted) return;
@@ -167,7 +180,12 @@ export default function App() {
       (activeTab === "tournamentLobby" && tournamentContext.isInRoom);
 
     if (isPlayingGame) {
-      playGame();
+      // 🌟 如果遊戲中且有人立直，播激戰音樂；否則播一般對局音樂
+      if (isRiichiBgmActive) {
+        playRiichi();
+      } else {
+        playGame();
+      }
     } else {
       playLobby();
     }
@@ -176,6 +194,7 @@ export default function App() {
     return () => {
       stopLobby();
       stopGame();
+      stopRiichi();
     };
   }, [
     activeTab,
@@ -185,6 +204,8 @@ export default function App() {
     stopLobby,
     playGame,
     stopGame,
+    playRiichi,
+    stopRiichi,
   ]);
 
   const TABS = [
@@ -216,7 +237,7 @@ export default function App() {
       />
 
       {/* 🌟 用 AudioContext 包住主要內容區 */}
-      <AudioContext.Provider value={{ isMuted }}>
+      <AudioContext.Provider value={{ isMuted, setIsRiichiBgmActive }}>
         <main className="flex-1 overflow-y-auto w-full touch-pan-y">
           <div className="max-w-5xl mx-auto px-2 md:px-4 py-6 pb-24">
             {activeTab === "tactics" && <AttackDefenseTactics />}
