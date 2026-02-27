@@ -20,6 +20,9 @@ dependencies:
   tailwindcss:
     specifier: 4.2.1
     version: 4.2.1
+  use-sound:
+    specifier: ^5.0.0
+    version: 5.0.0(react@19.1.0)
 
 devDependencies:
   '@eslint/js':
@@ -2250,6 +2253,10 @@ packages:
       function-bind: 1.1.2
     dev: true
 
+  /howler@2.2.4:
+    resolution: {integrity: sha512-iARIBPgcQrwtEr+tALF+rapJ8qSc+Set2GJQl7xT1MQzWaVkFebdJhR3alVlSiUf5U7nAANKuj3aWpwerocD5w==}
+    dev: false
+
   /http-parser-js@0.5.10:
     resolution: {integrity: sha512-Pysuw9XpUq5dVc/2SMHpuTY01RFl8fttgcyunjL7eEMhGM3cI4eOmiCycJDVCo/7O7ClfQD3SaI6ftDzqOXYMA==}
     dev: false
@@ -3212,6 +3219,15 @@ packages:
     dependencies:
       punycode: 2.3.1
     dev: true
+
+  /use-sound@5.0.0(react@19.1.0):
+    resolution: {integrity: sha512-MNHT3FFC5HxNCrgZtrnpIMJI2cw/0D2xismcrtyht8BTuF5FhFhb57xO/jlQr2xJaFrc/0btzRQvGyHQwB7PVA==}
+    peerDependencies:
+      react: '>=16.8'
+    dependencies:
+      howler: 2.2.4
+      react: 19.1.0
+    dev: false
 
   /vite@6.3.5:
     resolution: {integrity: sha512-cZn6NDFE7wdTpINgs++ZJ4N49W2vRp8LCKrn3Ob1kYNtOo21vfDoaV5GzBfLU4MovSAB8uNRm4jgzVQZ+mBzPQ==}
