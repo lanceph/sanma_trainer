@@ -1,6 +1,16 @@
 // --- 版本更新歷程資料 (Changelog Data) ---
 export const CHANGELOG_DATA = [
   {
+    version: "v3.2.0",
+    date: "遊戲大廳與沉浸式 UI 升級",
+    changes: [
+      "UI/UX 全面升級：移除傳統的分頁導覽 (Tab Navigation)，新增大型卡片式的「遊戲大廳」模式選擇介面 (Feature)",
+      "新增動態背景與卡片懸停特效，大幅提升整體應用程式的遊戲客戶端沉浸感 (Enhance)",
+      "新增導覽列「返回大廳」按鈕，並完美整合錦標賽中途退出的防呆棄權警告機制 (Enhance)",
+      "優化音樂切換邏輯：大廳專屬 BGM 與對局 BGM 能夠根據玩家目前所在的介面精準且無縫地切換 (Enhance)",
+    ],
+  },
+  {
     version: "v3.1.1",
     date: "錦標賽狀態同步與結算修正",
     changes: [
