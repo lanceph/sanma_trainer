@@ -5,6 +5,10 @@ import { AudioContext } from "../App"; // 🌟 引入全域靜音狀態
 import drawSound from "../assets/sounds/draw.mp3";
 import discardSound from "../assets/sounds/discard.mp3";
 import clickSound from "../assets/sounds/click.mp3";
+import riichiSound from "../assets/sounds/riichi.mp3";
+import tickSound from "../assets/sounds/tick.mp3";
+import winSound from "../assets/sounds/win.mp3";
+
 import { MahjongEngine } from "../engine/MahjongEngine";
 import {
   submitRoundScore,
@@ -12,18 +16,36 @@ import {
 } from "../services/tournamentService";
 
 export const useSimulation = () => {
-  // 🌟 取得目前是否靜音
-  const { isMuted } = useContext(AudioContext);
-  // 🌟 註冊音效 (soundEnabled 會自動幫我們處理靜音邏輯)
+  // 🌟 解構出全域 sfxVolume
+  const { isMuted, sfxVolume } = useContext(AudioContext);
+
+  // 🌟 將所有音效的 volume 綁定到 sfxVolume
   const [playDraw] = useSound(drawSound, {
     soundEnabled: !isMuted,
-    volume: 0.35,
+    volume: sfxVolume,
   });
   const [playDiscard] = useSound(discardSound, {
     soundEnabled: !isMuted,
-    volume: 0.35,
+    volume: sfxVolume,
   });
-  const [playClick] = useSound(clickSound, { soundEnabled: !isMuted });
+  const [playClick] = useSound(clickSound, {
+    soundEnabled: !isMuted,
+    volume: sfxVolume,
+  });
+  const [playRiichi] = useSound(riichiSound, {
+    soundEnabled: !isMuted,
+    volume: sfxVolume,
+  });
+
+  const [playTick] = useSound(tickSound, {
+    soundEnabled: !isMuted,
+    volume: sfxVolume,
+  });
+  const [playWin] = useSound(winSound, {
+    soundEnabled: !isMuted,
+    volume: sfxVolume,
+  });
+
   const [config, setConfig] = useState({
     aiDiff: 3,
     timeLimit: 0,
@@ -329,6 +351,7 @@ export const useSimulation = () => {
       }
     }
     if (playerIdx === 0 && pendingRiichi) {
+      playRiichi(); // 🌟 播放立直音效！
       setIsRiichi((prev) => {
         const n = [...prev];
         n[0] = true;
@@ -338,10 +361,16 @@ export const useSimulation = () => {
       setCanRiichi(false);
     }
 
-    const newHands = [...hands],
-      newRivers = [...rivers];
+    const newHands = [...hands];
+    const newRivers = [...rivers];
+
+    // 🌟 修正：針對該玩家的手牌做深拷貝，避免直接竄改原本的 State
+    newHands[playerIdx] = [...hands[playerIdx]];
+
+    // 現在 splice 拔除的會是複製品上的牌，非常安全！
     const discarded = newHands[playerIdx].splice(tileIndex, 1)[0];
     newHands[playerIdx] = MahjongEngine.sortHand(newHands[playerIdx]);
+
     newRivers[playerIdx] = [...newRivers[playerIdx], discarded];
     setHands(newHands);
     setRivers(newRivers);
@@ -387,6 +416,7 @@ export const useSimulation = () => {
       }
 
       if (ronPlayers.length === 1) {
+        playWin(); // 🌟 播放和牌爆發音效！
         handleWin(
           ronPlayers[0],
           "ron",
@@ -401,6 +431,7 @@ export const useSimulation = () => {
         );
         return;
       } else if (ronPlayers.length === 2) {
+        playWin(); // 🌟 播放和牌爆發音效！
         // 如果有兩家同時和牌，呼叫專屬的雙響處理函式
         handleDoubleWin(ronPlayers, discarded, 0, latestRiichi, newHands);
         return;
@@ -577,6 +608,7 @@ export const useSimulation = () => {
       newKitas = [...kitas],
       newRivers = [...rivers];
     if (action === "ron") {
+      playWin(); // 🌟 播放和牌爆發音效！
       handleWin(
         0,
         "ron",
@@ -758,6 +790,7 @@ export const useSimulation = () => {
     }
   };
 
+  // 🌟 修正版：倒數計時與超時摸切
   useEffect(() => {
     if (
       gameState === "playing" &&
@@ -766,33 +799,29 @@ export const useSimulation = () => {
       !actionMenu &&
       !isRiichi[0]
     ) {
-      const timerId = setInterval(() => {
-        setTimeLeft((prev) => {
-          if (prev <= 1) {
-            clearInterval(timerId);
-            // 🌟 修正 3A：超時強制摸切，必須丟出「剛摸進來的那張牌」
-            const idx = hands[0].lastIndexOf(lastDrawnTile);
-            const discardIdx = idx !== -1 ? idx : hands[0].length - 1;
-            discardTile(0, discardIdx);
-            return 0;
-          }
-          return prev - 1;
-        });
+      // 當時間歸零時，觸發自動摸切 (移出 setState 外面)
+      if (timeLeft <= 0) {
+        const idx = hands[0].lastIndexOf(lastDrawnTile);
+        const discardIdx = idx !== -1 ? idx : hands[0].length - 1;
+        discardTile(0, discardIdx);
+        return;
+      }
+
+      // 使用 setTimeout 遞減時間
+      const timerId = setTimeout(() => {
+        setTimeLeft((prev) => prev - 1);
       }, 1000);
-      return () => clearInterval(timerId);
+
+      return () => clearTimeout(timerId);
     }
   }, [
     gameState,
     currentTurn,
     config.timeLimit,
-    hands,
-    context,
     actionMenu,
-    rivers,
-    openMelds,
-    kitas,
     isRiichi,
-    weights,
+    timeLeft, // 🌟 依賴加上 timeLeft
+    hands,
     lastDrawnTile,
   ]);
 
@@ -858,12 +887,14 @@ export const useSimulation = () => {
                 openMelds[currentTurn].length === 0 &&
                 analysis.isTenpai &&
                 Math.random() > 0.1
-              )
+              ) {
+                playRiichi(); // 🌟 補上這裡：讓 AI 立直時也發出閃電音效！
                 setIsRiichi((prev) => {
                   const n = [...prev];
                   n[currentTurn] = true;
                   return n;
                 });
+              }
             }
           }
         }
