@@ -319,6 +319,8 @@ const Tile = React.memo(
   ({
     tile,
     onClick,
+    onMouseEnter, // 🌟 新增：接收滑鼠移入事件
+    onMouseLeave, // 🌟 新增：接收滑鼠移出事件
     isSelected,
     isDiscard,
     highlight,
@@ -338,6 +340,8 @@ const Tile = React.memo(
     if (faceDown) {
       return (
         <div
+          onMouseEnter={onMouseEnter} // 🌟 暗槓的牌也綁定事件
+          onMouseLeave={onMouseLeave}
           className={`relative flex items-center justify-center ${sizeClasses} bg-orange-400 rounded shadow-sm border border-orange-500 border-b-orange-700 ${className}`}
         >
           <div className="w-full h-full opacity-20 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0IiBoZWlnaHQ9IjQiPgo8cmVjdCB3aWR0aD0iNCIgaGVpZ2h0PSI0IiBmaWxsPSIjZmZmIiAvPgo8cmVjdCB3aWR0aD0iMSIgaGVpZ2h0PSIxIiBmaWxsPSIjMDAwIiAvPgo8L3N2Zz4=')]"></div>
@@ -375,6 +379,8 @@ const Tile = React.memo(
         )}
         <div
           onClick={() => !isRiver && onClick && onClick(tile)}
+          onMouseEnter={onMouseEnter} // 🌟 真正將事件綁定到 DOM 元素上
+          onMouseLeave={onMouseLeave} // 🌟 真正將事件綁定到 DOM 元素上
           className={`relative flex items-center justify-center ${sizeClasses} ${bgClass} rounded ${shadowClass} ${borderClass} cursor-pointer select-none transition-transform duration-100 overflow-hidden
           ${
             isSelected && !small && !isRiver
