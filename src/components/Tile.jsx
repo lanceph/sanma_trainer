@@ -1,4 +1,5 @@
 import React from "react";
+import { motion } from "framer-motion"; // 🌟 引入 framer-motion
 import { TILE_LABELS } from "../constants/mahjong";
 
 const COLORS = {
@@ -341,19 +342,23 @@ const Tile = React.memo(
 
     if (faceDown) {
       return (
-        <div
+        <motion.div
+          layout // 🌟 啟用佈局動畫
           onMouseEnter={onMouseEnter}
           onMouseLeave={onMouseLeave}
           className={`relative flex items-center justify-center ${outerSizeClasses} ${innerBorderClasses} bg-orange-400 rounded shadow-sm border border-orange-500 border-b-orange-700 ${className}`}
         >
           <div className="w-full h-full opacity-20 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0IiBoZWlnaHQ9IjQiPgo8cmVjdCB3aWR0aD0iNCIgaGVpZ2h0PSI0IiBmaWxsPSIjZmZmIiAvPgo8cmVjdCB3aWR0aD0iMSIgaGVpZ2h0PSIxIiBmaWxsPSIjMDAwIiAvPgo8L3N2Zz4=')]"></div>
-        </div>
+        </motion.div>
       );
     }
 
     if (!tile)
       return (
-        <div className={`bg-transparent ${outerSizeClasses} ${className}`} />
+        <motion.div
+          layout
+          className={`bg-transparent ${outerSizeClasses} ${className}`}
+        />
       );
 
     const suit = tile.slice(-1);
@@ -378,7 +383,12 @@ const Tile = React.memo(
     }
 
     return (
-      <div
+      <motion.div
+        layout // 🌟 核心：自動處理位置變換動畫
+        // 🌟 摸牌效果：新摸的牌會從右側稍微彈入
+        initial={isJustDrawn && !isRiver ? { x: 20, opacity: 0 } : false}
+        animate={{ x: 0, opacity: 1 }}
+        transition={{ type: "spring", stiffness: 300, damping: 25 }}
         className={`relative group ${outerSizeClasses} ${rotateClass} ${
           isRiver ? "z-0" : "hover:z-50"
         } ${className}`}
@@ -423,7 +433,6 @@ const Tile = React.memo(
               .replace(/\s+/g, " ")
               .trim()}
           >
-            {/* 🌟 核心修正：將花樣圖案渲染邏輯重新放回視覺容器內部 */}
             {isDora && !faceDown && (
               <div className="absolute top-1 right-1 w-1.5 h-1.5 md:w-2 md:h-2 bg-yellow-400 rounded-full shadow-sm border-[0.5px] border-white z-0"></div>
             )}
@@ -434,7 +443,7 @@ const Tile = React.memo(
             </div>
           </div>
         </div>
-      </div>
+      </motion.div>
     );
   }
 );

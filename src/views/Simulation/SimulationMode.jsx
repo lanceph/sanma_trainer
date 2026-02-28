@@ -238,6 +238,9 @@ export const SimulationMode = ({ tournamentConfig }) => {
     lastDrawnIdx = state.hands[0].lastIndexOf(state.lastDrawnTile);
   }
 
+  // 🌟 Phase 3 修復：為手牌建立穩定的 Key 追蹤器
+  const handTileCounts = {};
+
   return (
     <div className="space-y-4">
       {/* 🌟 頂部資訊列 */}
@@ -644,6 +647,11 @@ export const SimulationMode = ({ tournamentConfig }) => {
           <div className="w-full overflow-x-auto scrollbar-hide -mt-6 mb-2">
             <div className="flex justify-start md:justify-center gap-1 md:gap-2 px-4 pt-12 pb-6 min-w-full w-max">
               {state.hands[0].map((t, i) => {
+                // 🌟 核心修正：計算這張牌是同名牌中的第幾張，產生永不變動的唯一 Key
+                const currentCount = handTileCounts[t] || 0;
+                handTileCounts[t] = currentCount + 1;
+                const stableKey = `hand0-${t}-${currentCount}`;
+
                 const isSelected = state.selectedTileIndex === i;
                 const isJustDrawn =
                   i === lastDrawnIdx && state.currentTurn === 0;
@@ -693,7 +701,8 @@ export const SimulationMode = ({ tournamentConfig }) => {
                 const isHoverMatched = hoveredTileType === t;
 
                 return (
-                  <div key={`p-${t}-${i}`} className="relative mt-2">
+                  // 🌟 修正：使用唯一且穩定的 key，讓動畫不會在理牌時閃爍
+                  <div key={stableKey} className="relative mt-2 flex-shrink-0">
                     {wScore !== undefined &&
                       state.currentTurn === 0 &&
                       !state.actionMenu &&
@@ -728,8 +737,8 @@ export const SimulationMode = ({ tournamentConfig }) => {
                         !state.isRiichi[0] &&
                         actions.setSelectedTileIndex(i)
                       }
-                      // 🌟 修正：移除這裡的 scale-110 與 -translate-y-2，這部分已經寫在 Tile.jsx 內部了
-                      className="transition-all duration-300"
+                      // 🌟 移除冗餘的 transition 類別，統一由 Tile 元件控制
+                      className=""
                     />
                   </div>
                 );
