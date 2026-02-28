@@ -3,9 +3,23 @@ import Tile from "../../components/Tile";
 import { MahjongEngine } from "../../engine/MahjongEngine";
 
 export const SimActionMenu = ({ state, actions }) => {
+  // 🌟 安全檢查：如果 actionMenu 為空，直接不渲染
+  if (!state.actionMenu) return null;
+
   const checkDora = (t) => MahjongEngine.isTileDora(t, state.context.doraInd);
   const getPlayerName = (idx) =>
     idx === 0 ? "您 (自家)" : idx === 1 ? "下家 (AI)" : "上家 (AI)";
+
+  // 🌟 Phase 3 新增：檢查是否有任何有效的行動選項（避免出現空選單）
+  const hasValidOptions =
+    state.actionMenu.type === "discard_reaction"
+      ? state.actionMenu.canRon ||
+        state.actionMenu.canPon ||
+        state.actionMenu.canKan
+      : state.actionMenu.canKita || state.actionMenu.canAnkan;
+
+  // 🌟 如果沒有任何有效動作可按，直接回傳 null，避免擋住玩家視線
+  if (!hasValidOptions) return null;
 
   return (
     <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-slate-900/95 p-8 rounded-3xl shadow-[0_0_40px_rgba(0,0,0,0.5)] z-50 flex flex-col items-center border-2 border-slate-600 animate-in zoom-in-90 min-w-[320px]">
