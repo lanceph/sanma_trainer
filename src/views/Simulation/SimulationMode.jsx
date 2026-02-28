@@ -230,7 +230,7 @@ export const SimulationMode = ({ tournamentConfig }) => {
       )}
 
       {/* 🌟 3. 綠色桌面：加入 flex-1 填滿高度，並設定 min-h-[550px] 保護羅盤生存空間 */}
-      <div className="bg-emerald-800 p-2 md:p-4 rounded-xl shadow-[inset_0_0_50px_rgba(0,0,0,0.4)] relative flex-1 flex flex-col justify-between overflow-hidden min-h-[550px] md:min-h-[600px]">
+      <div className="bg-emerald-800 p-2 md:p-4 pr-12 md:pr-4 rounded-xl shadow-[inset_0_0_50px_rgba(0,0,0,0.4)] relative flex-1 flex flex-col justify-between overflow-hidden min-h-[550px] md:min-h-[600px]">
         {/* 🌟 4. 補回消失的中央羅盤 (CentralCompass) */}
         {state.gameState !== "setup" && (
           <CentralCompass state={state} checkDora={checkDora} />
