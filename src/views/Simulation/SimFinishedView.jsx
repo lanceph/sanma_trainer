@@ -1,17 +1,44 @@
-import React from "react";
-import { Trophy, AlertTriangle } from "lucide-react";
+import React, { useState } from "react";
+// 🌟 記得引入 Eye 與 Maximize2 這兩個新圖示
+import { Trophy, AlertTriangle, Eye, Maximize2 } from "lucide-react";
 
 export const SimFinishedView = ({ state, actions }) => {
   const isDoubleRon = state.winner.type === "double_ron";
 
+  // 🌟 新增：控制結算畫面是否被縮小隱藏的狀態
+  const [isMinimized, setIsMinimized] = useState(false);
+
+  // 🌟 新增：如果被縮小了，只顯示右下角的一顆浮動按鈕
+  if (isMinimized) {
+    return (
+      <button
+        onClick={() => setIsMinimized(false)}
+        className="fixed bottom-6 right-6 z-[100] bg-slate-900 border-2 border-emerald-500 px-6 py-3 rounded-full text-white font-bold shadow-2xl shadow-emerald-500/30 flex items-center gap-2 hover:bg-slate-800 transition-all hover:scale-105 animate-in slide-in-from-bottom-5"
+      >
+        <Maximize2 size={20} className="text-emerald-400" />
+        展開結算並上傳分數
+      </button>
+    );
+  }
+
   return (
-    // 🌟 加上了 fixed 與 backdrop-blur 讓它變成彈出視窗
     <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
       <div
         className={`bg-slate-900 border-4 ${
-          isDoubleRon ? "border-red-500" : "border-yellow-500"
+          isDoubleRon ? "border-red-500" : "border-emerald-500"
         } p-6 rounded-2xl shadow-2xl text-center animate-in fade-in zoom-in relative max-h-[90vh] overflow-y-auto w-full max-w-2xl`}
       >
+        {/* 🌟 新增：右上角的快速隱藏觀戰按鈕 */}
+        {state.config.tournamentConfig?.tid && (
+          <button
+            onClick={() => setIsMinimized(true)}
+            className="absolute top-4 right-4 text-slate-400 hover:text-white bg-slate-800 p-2 rounded-lg transition-colors border border-slate-700 shadow-md"
+            title="暫時隱藏以觀看其他玩家現況"
+          >
+            <Eye size={20} />
+          </button>
+        )}
+
         {isDoubleRon ? (
           <AlertTriangle
             size={56}
@@ -51,7 +78,7 @@ export const SimFinishedView = ({ state, actions }) => {
               }`}
         </p>
 
-        {/* 單人榮和/自摸/流局 的渲染 */}
+        {/* --- 渲染結算卡片邏輯 (保持不變) --- */}
         {state.scoreResult && !state.scoreResult.isDouble && (
           <div className="bg-slate-800 p-4 rounded-xl text-left max-w-md mx-auto mb-6 border border-slate-700">
             <div className="flex justify-between items-end border-b border-slate-600 pb-2 mb-3">
@@ -67,7 +94,6 @@ export const SimFinishedView = ({ state, actions }) => {
                 </div>
               ))}
             </div>
-            {/* 🌟 新增：寶牌指示牌展示區 */}
             <div className="mt-4 p-3 bg-slate-900/50 rounded-lg border border-slate-700 text-sm">
               <div className="flex items-center gap-2 mb-2">
                 <span className="text-yellow-500 font-bold w-16 text-right">
@@ -84,8 +110,6 @@ export const SimFinishedView = ({ state, actions }) => {
                   ))}
                 </div>
               </div>
-
-              {/* 只有立直且有裏寶牌時才顯示 */}
               {state.scoreResult.uraIndicators &&
                 state.scoreResult.uraIndicators.length > 0 && (
                   <div className="flex items-center gap-2">
@@ -111,7 +135,6 @@ export const SimFinishedView = ({ state, actions }) => {
           </div>
         )}
 
-        {/* 🌟 雙響專用渲染 (兩張卡片並排) */}
         {state.scoreResult && state.scoreResult.isDouble && (
           <div className="flex flex-col md:flex-row gap-4 justify-center mb-6">
             {state.scoreResult.results.map((r) => (
@@ -145,24 +168,37 @@ export const SimFinishedView = ({ state, actions }) => {
             ))}
           </div>
         )}
+        {/* --- 渲染結算卡片邏輯結束 --- */}
 
-        {/* 🌟 修改：錦標賽也能顯示確認按鈕，點擊後會呼叫 proceedToNextPhase 推進遊戲 */}
-        <button
-          onClick={() =>
-            actions.proceedToNextPhase
-              ? actions.proceedToNextPhase()
-              : actions.setGameState("setup")
-          }
-          className={`px-10 py-4 mt-4 rounded-full font-black text-lg transition transform hover:scale-105 shadow-lg w-full md:w-auto ${
-            state.config.tournamentConfig?.tid
-              ? "bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-500/20"
-              : "bg-yellow-500 hover:bg-yellow-400 text-slate-900 shadow-yellow-500/20"
-          }`}
-        >
-          {state.config.tournamentConfig?.tid
-            ? "✅ 確認結算並等待下一局"
-            : "再來一局"}
-        </button>
+        {/* 🌟 修改：將按鈕區塊整合，加入「觀看其他人狀態」的純文字按鈕 */}
+        <div className="flex flex-col gap-3 mt-4">
+          <button
+            onClick={() =>
+              actions.proceedToNextPhase
+                ? actions.proceedToNextPhase()
+                : actions.setGameState("setup")
+            }
+            className={`px-10 py-4 rounded-full font-black text-lg transition transform hover:scale-105 shadow-lg w-full md:w-auto mx-auto ${
+              state.config.tournamentConfig?.tid
+                ? "bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-500/20"
+                : "bg-yellow-500 hover:bg-yellow-400 text-slate-900 shadow-yellow-500/20"
+            }`}
+          >
+            {state.config.tournamentConfig?.tid
+              ? "✅ 確認結算並等待下一局"
+              : "再來一局"}
+          </button>
+
+          {/* 錦標賽限定：結算畫面下方的隱藏按鈕 */}
+          {state.config.tournamentConfig?.tid && (
+            <button
+              onClick={() => setIsMinimized(true)}
+              className="text-slate-400 hover:text-emerald-400 transition-colors font-bold text-sm flex justify-center items-center gap-1.5 mt-2"
+            >
+              <Eye size={16} /> 暫時隱藏結算畫面，觀看其他玩家現況
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );
