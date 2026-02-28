@@ -3,6 +3,7 @@
 一個專為日本麻將（三人麻將）愛好者打造的進階 Web 訓練與競技平台。
 整合了「防守權重分析」、「AI 模擬對局」與「即時多人連線錦標賽 (Duplicate Mahjong)」，旨在幫助玩家透過科學化的數據與實戰演練，提升攻防判斷能力。
 ✨ 核心特色 (Key Features)
+
 🏆 複式多人連線賽 (Multiplayer Duplicate Tournament)
 
 採用「複式麻將 (Duplicate Mahjong)」概念，旨在考驗玩家在相同進張下的攻防選擇。
