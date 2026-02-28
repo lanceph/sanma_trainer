@@ -8,6 +8,8 @@ import clickSound from "../assets/sounds/click.mp3";
 import riichiSound from "../assets/sounds/riichi.mp3";
 import tickSound from "../assets/sounds/tick.mp3";
 import winSound from "../assets/sounds/win.mp3";
+import loseSound from "../assets/sounds/lose.mp3";
+import notWinSound from "../assets/sounds/not_win.mp3";
 
 import { MahjongEngine } from "../engine/MahjongEngine";
 import {
@@ -42,6 +44,14 @@ export const useSimulation = () => {
     volume: sfxVolume,
   });
   const [playWin] = useSound(winSound, {
+    soundEnabled: !isMuted,
+    volume: sfxVolume,
+  });
+  const [playLose] = useSound(loseSound, {
+    soundEnabled: !isMuted,
+    volume: sfxVolume,
+  });
+  const [playNotWin] = useSound(notWinSound, {
     soundEnabled: !isMuted,
     volume: sfxVolume,
   });
@@ -170,6 +180,9 @@ export const useSimulation = () => {
     // ==========================================
     if (currentDeck.length === 0) {
       setGameState("finished");
+
+      // 🌟 3. 新增：播放流局（沒人和牌）音效
+      playNotWin();
 
       // 1. 利用引擎分析三家的聽牌狀態
       const tenpaiStatus = [false, false, false];
@@ -415,7 +428,6 @@ export const useSimulation = () => {
       }
 
       if (ronPlayers.length === 1) {
-        playWin(); // 🌟 播放和牌爆發音效！
         handleWin(
           ronPlayers[0],
           "ron",
@@ -430,7 +442,6 @@ export const useSimulation = () => {
         );
         return;
       } else if (ronPlayers.length === 2) {
-        playWin(); // 🌟 播放和牌爆發音效！
         // 如果有兩家同時和牌，呼叫專屬的雙響處理函式
         handleDoubleWin(ronPlayers, discarded, 0, latestRiichi, newHands);
         return;
@@ -462,6 +473,13 @@ export const useSimulation = () => {
     setActionMenu(null);
     setGameState("finished");
     setWinner({ playerIdx, type, from: fromIdx });
+
+    // 🌟 4. 修改：根據和牌者撥放對應音效
+    if (playerIdx === 0) {
+      playWin(); // 玩家自己和牌
+    } else {
+      playLose(); // AI 和牌 (玩家輸了)
+    }
     const activeCtx = ctxOverride || context;
     const isDealer =
       (playerIdx === 0 && activeCtx.sWind === "1z") ||
@@ -512,6 +530,8 @@ export const useSimulation = () => {
   ) => {
     setActionMenu(null);
     setGameState("finished");
+    // 🌟 5. 修改：雙響目前只發生在玩家放銃給兩家 AI，故播放 lose
+    playLose();
     setWinner({ type: "double_ron", winners: winnerIndices, from: fromIdx });
 
     const activeCtx = context;
@@ -576,7 +596,6 @@ export const useSimulation = () => {
       newKitas = [...kitas],
       newRivers = [...rivers];
     if (action === "ron") {
-      playWin(); // 🌟 播放和牌爆發音效！
       handleWin(
         0,
         "ron",
