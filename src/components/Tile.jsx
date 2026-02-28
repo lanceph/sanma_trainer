@@ -1,4 +1,5 @@
 import React from "react";
+import { motion } from "framer-motion"; // 🌟 引入 framer-motion
 import { TILE_LABELS } from "../constants/mahjong";
 
 const COLORS = {
@@ -319,8 +320,8 @@ const Tile = React.memo(
   ({
     tile,
     onClick,
-    onMouseEnter, // 🌟 新增：接收滑鼠移入事件
-    onMouseLeave, // 🌟 新增：接收滑鼠移出事件
+    onMouseEnter,
+    onMouseLeave,
     isSelected,
     isDiscard,
     highlight,
@@ -332,25 +333,34 @@ const Tile = React.memo(
     faceDown = false,
     rotated = false,
   }) => {
-    const sizeClasses = small
-      ? "w-8 h-11 md:w-10 md:h-14 border-b-[3px]"
-      : "w-10 h-14 md:w-12 md:h-16 border-b-[4px]";
+    const outerSizeClasses = small
+      ? "w-8 h-11 md:w-10 md:h-14 flex-shrink-0"
+      : "w-10 h-14 md:w-12 md:h-16 flex-shrink-0";
+
+    const innerBorderClasses = small ? "border-b-[3px]" : "border-b-[4px]";
     const rotateClass = rotated ? "transform -rotate-90 origin-center" : "";
 
     if (faceDown) {
       return (
-        <div
-          onMouseEnter={onMouseEnter} // 🌟 暗槓的牌也綁定事件
+        <motion.div
+          layout // 🌟 啟用佈局動畫
+          onMouseEnter={onMouseEnter}
           onMouseLeave={onMouseLeave}
-          className={`relative flex items-center justify-center ${sizeClasses} bg-orange-400 rounded shadow-sm border border-orange-500 border-b-orange-700 ${className}`}
+          className={`relative flex items-center justify-center ${outerSizeClasses} ${innerBorderClasses} bg-orange-400 rounded shadow-sm border border-orange-500 border-b-orange-700 ${className}`}
         >
           <div className="w-full h-full opacity-20 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0IiBoZWlnaHQ9IjQiPgo8cmVjdCB3aWR0aD0iNCIgaGVpZ2h0PSI0IiBmaWxsPSIjZmZmIiAvPgo8cmVjdCB3aWR0aD0iMSIgaGVpZ2h0PSIxIiBmaWxsPSIjMDAwIiAvPgo8L3N2Zz4=')]"></div>
-        </div>
+        </motion.div>
       );
     }
 
     if (!tile)
-      return <div className={`bg-transparent ${sizeClasses} ${className}`} />;
+      return (
+        <motion.div
+          layout
+          className={`bg-transparent ${outerSizeClasses} ${className}`}
+        />
+      );
+
     const suit = tile.slice(-1);
     let bgClass = isDora
       ? "bg-gradient-to-br from-yellow-50 to-[#fff3c7]"
@@ -364,45 +374,76 @@ const Tile = React.memo(
       ? "shadow-[0_0_6px_rgba(251,191,36,0.8)]"
       : "shadow-[0_2px_4px_rgba(0,0,0,0.2)]";
 
+    const isInteractive = !small && !isRiver && !!onClick;
+
     if (isSelected && !small && !isRiver) {
       borderClass =
         "border-yellow-400 border-b-yellow-500 ring-2 ring-yellow-400";
-      shadowClass = "shadow-[0_8px_10px_rgba(0,0,0,0.3)]";
+      shadowClass = "shadow-[0_8px_12px_rgba(0,0,0,0.3)]";
     }
 
     return (
-      <div className={`relative ${rotateClass} ${isRiver ? "z-0" : ""}`}>
-        {isJustDrawn && !small && !isRiver && (
-          <div className="absolute -top-3 -right-2 bg-blue-500 text-white text-[9px] md:text-[11px] px-1.5 py-0.5 rounded shadow-md z-30 font-black border border-blue-300 animate-bounce">
-            摸
-          </div>
-        )}
+      <motion.div
+        layout // 🌟 核心：自動處理位置變換動畫
+        // 🌟 摸牌效果：新摸的牌會從右側稍微彈入
+        initial={isJustDrawn && !isRiver ? { x: 20, opacity: 0 } : false}
+        animate={{ x: 0, opacity: 1 }}
+        transition={{ type: "spring", stiffness: 300, damping: 25 }}
+        className={`relative group ${outerSizeClasses} ${rotateClass} ${
+          isRiver ? "z-0" : "hover:z-50"
+        } ${className}`}
+        onClick={() => !isRiver && onClick && onClick(tile)}
+        onMouseEnter={onMouseEnter}
+        onMouseLeave={onMouseLeave}
+        style={isInteractive ? { cursor: "pointer" } : {}}
+      >
         <div
-          onClick={() => !isRiver && onClick && onClick(tile)}
-          onMouseEnter={onMouseEnter} // 🌟 真正將事件綁定到 DOM 元素上
-          onMouseLeave={onMouseLeave} // 🌟 真正將事件綁定到 DOM 元素上
-          className={`relative flex items-center justify-center ${sizeClasses} ${bgClass} rounded ${shadowClass} ${borderClass} cursor-pointer select-none transition-transform duration-100 overflow-hidden
-          ${
-            isSelected && !small && !isRiver
-              ? "transform -translate-y-4"
-              : !small && !isRiver
-              ? "hover:-translate-y-1 hover:z-20"
-              : ""
-          }
-          ${isDiscard ? "opacity-50 grayscale" : ""} ${
-            highlight ? "ring-2 ring-green-500 bg-green-50" : ""
-          } ${className}`}
+          className={`
+            absolute inset-0 transition-transform duration-200 ease-out
+            ${isSelected && !small && !isRiver ? "-translate-y-4" : ""}
+            ${isInteractive && !isSelected ? "group-hover:-translate-y-2" : ""}
+            ${highlight ? "z-10 scale-105" : "z-0"}
+          `
+            .replace(/\s+/g, " ")
+            .trim()}
         >
-          {isDora && !faceDown && (
-            <div className="absolute top-1 right-1 w-1.5 h-1.5 md:w-2 md:h-2 bg-yellow-400 rounded-full shadow-sm border-[0.5px] border-white z-0"></div>
+          {isJustDrawn && !small && !isRiver && (
+            <div className="absolute -top-3 -right-2 bg-blue-500 text-white text-[9px] md:text-[11px] px-1.5 py-0.5 rounded shadow-md z-30 font-black border border-blue-300 animate-bounce">
+              摸
+            </div>
           )}
-          <div className="w-[85%] h-[85%] flex items-center justify-center relative z-0">
-            {suit === "p" && <PinGraphics rank={tile.charAt(0)} />}
-            {suit === "s" && <SouGraphics rank={tile.charAt(0)} />}
-            {(suit === "m" || suit === "z") && <TextGraphics tile={tile} />}
+
+          <div
+            className={`
+              w-full h-full flex items-center justify-center ${innerBorderClasses} ${bgClass} rounded
+              ${borderClass} ${shadowClass} select-none overflow-hidden
+              transition-shadow duration-200 ease-out
+              ${
+                isInteractive && !isSelected
+                  ? "group-hover:shadow-[0_8px_15px_rgba(0,0,0,0.3)]"
+                  : ""
+              }
+              ${isDiscard ? "opacity-50 grayscale" : ""}
+              ${
+                highlight
+                  ? "ring-2 ring-green-500 bg-green-50 shadow-[0_0_12px_rgba(34,197,94,0.5)]"
+                  : ""
+              }
+            `
+              .replace(/\s+/g, " ")
+              .trim()}
+          >
+            {isDora && !faceDown && (
+              <div className="absolute top-1 right-1 w-1.5 h-1.5 md:w-2 md:h-2 bg-yellow-400 rounded-full shadow-sm border-[0.5px] border-white z-0"></div>
+            )}
+            <div className="w-[85%] h-[85%] flex items-center justify-center relative z-0">
+              {suit === "p" && <PinGraphics rank={tile.charAt(0)} />}
+              {suit === "s" && <SouGraphics rank={tile.charAt(0)} />}
+              {(suit === "m" || suit === "z") && <TextGraphics tile={tile} />}
+            </div>
           </div>
         </div>
-      </div>
+      </motion.div>
     );
   }
 );

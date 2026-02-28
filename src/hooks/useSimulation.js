@@ -8,6 +8,8 @@ import clickSound from "../assets/sounds/click.mp3";
 import riichiSound from "../assets/sounds/riichi.mp3";
 import tickSound from "../assets/sounds/tick.mp3";
 import winSound from "../assets/sounds/win.mp3";
+import loseSound from "../assets/sounds/lose.mp3";
+import notWinSound from "../assets/sounds/not_win.mp3";
 
 import { MahjongEngine } from "../engine/MahjongEngine";
 import {
@@ -45,6 +47,14 @@ export const useSimulation = () => {
     soundEnabled: !isMuted,
     volume: sfxVolume,
   });
+  const [playLose] = useSound(loseSound, {
+    soundEnabled: !isMuted,
+    volume: sfxVolume,
+  });
+  const [playNotWin] = useSound(notWinSound, {
+    soundEnabled: !isMuted,
+    volume: sfxVolume,
+  });
 
   const [config, setConfig] = useState({
     aiDiff: 3,
@@ -78,7 +88,12 @@ export const useSimulation = () => {
   const [tacticalInfo, setTacticalInfo] = useState(null);
   const [lastDrawnTile, setLastDrawnTile] = useState(null);
   const [currentWaits, setCurrentWaits] = useState([]); // 🌟 新增：用來記錄現在正在聽哪些牌
-
+  // 🌟 Phase 2 改良版：記錄「哪一家」剛出牌
+  const [shakingPlayer, setShakingPlayer] = useState(null);
+  const triggerShake = useCallback((playerIdx) => {
+    setShakingPlayer(playerIdx);
+    setTimeout(() => setShakingPlayer(null), 200); // 配合動畫時間 0.2s
+  }, []);
   const startGame = useCallback(() => {
     // 這裡傳入 config.seed
     const fullDeck = MahjongEngine.generateRandomDeck(config.seed);
@@ -165,6 +180,9 @@ export const useSimulation = () => {
     // ==========================================
     if (currentDeck.length === 0) {
       setGameState("finished");
+
+      // 🌟 3. 新增：播放流局（沒人和牌）音效
+      playNotWin();
 
       // 1. 利用引擎分析三家的聽牌狀態
       const tenpaiStatus = [false, false, false];
@@ -328,6 +346,7 @@ export const useSimulation = () => {
 
   const discardTile = (playerIdx, tileIndex) => {
     playDiscard(); // 🌟 播放打牌音效
+    triggerShake(playerIdx); // 🌟 傳入剛出牌的玩家位置
 
     if (playerIdx === 0) setLastDrawnTile(null);
 
@@ -409,7 +428,6 @@ export const useSimulation = () => {
       }
 
       if (ronPlayers.length === 1) {
-        playWin(); // 🌟 播放和牌爆發音效！
         handleWin(
           ronPlayers[0],
           "ron",
@@ -424,7 +442,6 @@ export const useSimulation = () => {
         );
         return;
       } else if (ronPlayers.length === 2) {
-        playWin(); // 🌟 播放和牌爆發音效！
         // 如果有兩家同時和牌，呼叫專屬的雙響處理函式
         handleDoubleWin(ronPlayers, discarded, 0, latestRiichi, newHands);
         return;
@@ -456,6 +473,13 @@ export const useSimulation = () => {
     setActionMenu(null);
     setGameState("finished");
     setWinner({ playerIdx, type, from: fromIdx });
+
+    // 🌟 4. 修改：根據和牌者撥放對應音效
+    if (playerIdx === 0) {
+      playWin(); // 玩家自己和牌
+    } else {
+      playLose(); // AI 和牌 (玩家輸了)
+    }
     const activeCtx = ctxOverride || context;
     const isDealer =
       (playerIdx === 0 && activeCtx.sWind === "1z") ||
@@ -490,6 +514,13 @@ export const useSimulation = () => {
       : [activeCtx.doraInd];
     scoreData.uraIndicators = riichiStat ? activeCtx.uraDoraInd : [];
 
+    // 👇====== 新增：把手牌資訊也帶給結算畫面 ======👇
+    scoreData.hand = hand;
+    scoreData.melds = melds;
+    scoreData.kitas = playerKitas;
+    scoreData.winTile = winTile;
+    // 👆===========================================👆
+
     // 🌟 修正 4：結算前統一幫所有人的手牌排序，讓 UI 顯示整齊
     setHands((prev) => prev.map((h) => MahjongEngine.sortHand(h)));
 
@@ -506,6 +537,8 @@ export const useSimulation = () => {
   ) => {
     setActionMenu(null);
     setGameState("finished");
+    // 🌟 5. 修改：雙響目前只發生在玩家放銃給兩家 AI，故播放 lose
+    playLose();
     setWinner({ type: "double_ron", winners: winnerIndices, from: fromIdx });
 
     const activeCtx = context;
@@ -549,6 +582,14 @@ export const useSimulation = () => {
       scoreData.doraIndicators = currentDoraInd;
       scoreData.uraIndicators = currentUraInd;
 
+      // 👇====== 新增：把手牌資訊也帶給結算畫面 ======👇
+      // 注意：雙響時 currentHands[idx] 尚未包含放銃那張牌，所以我們自己把它合起來
+      scoreData.hand = [...currentHands[idx], winTile];
+      scoreData.melds = openMelds[idx];
+      scoreData.kitas = kitas[idx];
+      scoreData.winTile = winTile;
+      // 👆===========================================👆
+
       doubleScoreResults.push({ playerIdx: idx, scoreData });
 
       // 玩家被雙響，扣分是兩家打點的總和
@@ -570,7 +611,6 @@ export const useSimulation = () => {
       newKitas = [...kitas],
       newRivers = [...rivers];
     if (action === "ron") {
-      playWin(); // 🌟 播放和牌爆發音效！
       handleWin(
         0,
         "ron",
@@ -1036,6 +1076,7 @@ export const useSimulation = () => {
       tacticalInfo,
       lastDrawnTile,
       currentWaits,
+      shakingPlayer, // 🌟 Phase 2 新增：匯出震動狀態
     },
     actions: {
       setConfig,

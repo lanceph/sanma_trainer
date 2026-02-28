@@ -8,8 +8,8 @@ import {
   VolumeX,
   Trophy,
   Settings,
-  Home, // 🌟 新增：首頁/返回大廳圖示
-  Gamepad2, // 🌟 新增：遊戲手把圖示 (裝飾用)
+  Home,
+  ChevronRight,
 } from "lucide-react";
 import appIcon from "./assets/icon.svg";
 import useSound from "use-sound";
@@ -26,25 +26,24 @@ import { ChangelogView } from "./views/ChangelogView";
 import TournamentManager from "./views/Tournament/TournamentManager";
 import { abandonTournament } from "./services/tournamentService";
 
-// 🌟 擴充 AudioContext
 export const AudioContext = React.createContext({
   isMuted: false,
   setIsRiichiBgmActive: () => {},
   sfxVolume: 0.35,
 });
 
-// 🌟 修改 AppHeader：加入 activeTab 與 onGoHome Props，用來渲染「返回大廳」按鈕
+// 🌟 修改：加入 onOpenChangelog，將更新歷程移至頂部狀態列
 const AppHeader = ({
   activeTab,
   onGoHome,
   isMuted,
   toggleMute,
   onOpenSettings,
+  onOpenChangelog,
 }) => (
-  <header className="bg-slate-900 text-white p-4 shadow-xl z-50 shrink-0 relative border-b border-slate-700">
-    <div className="max-w-5xl mx-auto flex justify-between items-center">
+  <header className="bg-slate-900/95 backdrop-blur-md text-white p-4 shadow-xl z-50 shrink-0 relative border-b border-slate-700/80">
+    <div className="max-w-[1400px] mx-auto flex justify-between items-center">
       <div className="flex items-center gap-3 md:gap-4">
-        {/* 🌟 當不在大廳時，顯示返回按鈕 */}
         {activeTab !== "home" && (
           <button
             onClick={onGoHome}
@@ -66,20 +65,30 @@ const AppHeader = ({
             className="w-8 h-8 md:w-10 md:h-10 drop-shadow-[0_0_8px_rgba(255,255,255,0.2)]"
           />
           <div className="flex flex-col md:flex-row md:items-baseline">
-            <span className="tracking-widest">三麻進階訓練場</span>
-            <span className="text-[10px] md:text-xs text-slate-400 font-normal md:ml-2 tracking-widest hidden sm:inline-block">
-              (by zonesky)
+            <span className="tracking-widest drop-shadow-md">
+              三麻進階訓練場
+            </span>
+            <span className="text-[10px] md:text-xs text-emerald-400 font-bold md:ml-2 tracking-widest hidden sm:inline-block">
+              PRO EDITION
             </span>
           </div>
         </h1>
       </div>
 
       <div className="flex items-center gap-2 md:gap-4">
-        <div className="text-xs md:text-sm text-slate-400 hidden md:block">
+        <div className="text-xs md:text-sm text-slate-400 hidden md:block font-medium">
           基於《數據制勝》與《79博客》理論
         </div>
 
-        {/* 音訊設定按鈕 */}
+        {/* 🌟 新增：更新歷程 (Changelog) 按鈕 */}
+        <button
+          onClick={onOpenChangelog}
+          className="p-2 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors shadow-inner"
+          title="更新歷程"
+        >
+          <History size={20} />
+        </button>
+
         <button
           onClick={onOpenSettings}
           className="p-2 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors shadow-inner"
@@ -88,7 +97,6 @@ const AppHeader = ({
           <Settings size={20} />
         </button>
 
-        {/* 靜音切換按鈕 */}
         <button
           onClick={toggleMute}
           className="p-2 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors shadow-inner"
@@ -105,7 +113,6 @@ const AppHeader = ({
   </header>
 );
 
-// 🌟 專屬的音訊設定彈出視窗 (Modal)
 const AudioSettingsModal = ({
   isOpen,
   onClose,
@@ -121,7 +128,6 @@ const AudioSettingsModal = ({
         <h2 className="text-xl font-black mb-6 flex items-center gap-2 text-emerald-400">
           <Settings size={24} /> 音訊設定
         </h2>
-
         <div className="mb-6">
           <label className="flex justify-between text-sm font-bold text-slate-300 mb-2">
             <span>背景音樂 (BGM)</span>
@@ -139,7 +145,6 @@ const AudioSettingsModal = ({
             className="w-full accent-emerald-500 h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer"
           />
         </div>
-
         <div className="mb-8">
           <label className="flex justify-between text-sm font-bold text-slate-300 mb-2">
             <span>遊戲音效 (SFX)</span>
@@ -157,7 +162,6 @@ const AudioSettingsModal = ({
             className="w-full accent-emerald-500 h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer"
           />
         </div>
-
         <button
           onClick={onClose}
           className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-black transition-colors shadow-lg"
@@ -170,114 +174,149 @@ const AudioSettingsModal = ({
 };
 
 // =========================================================================
-// 🌟 新增：大型遊戲大廳 UI (取代原本的 TabNavigation)
+// 🌟 史詩級重構：沉浸式遊戲大廳 (Immersive Game Lobby)
 // =========================================================================
 const GameLobby = ({ onSelectMode }) => {
-  const modes = [
+  const mainModes = [
     {
       id: "simulation",
       icon: Swords,
-      label: "單機特訓 (Sandbox)",
+      label: "單機特訓",
+      subLabel: "SANDBOX MODE",
       desc: "與 AI 進行實戰演練，結合戰術雷達提升攻防判斷能力。",
-      color: "from-blue-600 to-indigo-800",
-      shadow: "shadow-blue-500/30",
-      colSpan: "md:col-span-1",
+      color: "from-blue-600/90 to-indigo-900/90",
+      border: "border-blue-400/50",
+      glow: "group-hover:shadow-[0_0_40px_rgba(37,99,235,0.6)]",
     },
     {
       id: "tournamentLobby",
       icon: Trophy,
-      // 🌟 改名並加上 Duplicate 關鍵字
-      label: "複式競技賽 (Duplicate PK)",
-      // 🌟 重新撰寫敘述，明確告知是跟 AI 打，並比較成績
-      desc: "採用「複式麻將」賽制。所有玩家在各自的牌桌對戰相同的 AI 與牌山，考驗誰能在完全一樣的進張下做出最佳攻防判斷，獲取最高總分！",
-      color: "from-red-600 to-rose-800",
-      shadow: "shadow-red-500/30",
-      colSpan: "md:col-span-1",
+      label: "複式競技賽",
+      subLabel: "DUPLICATE PK",
+      desc: "同牌山競技！考驗誰能在完全一樣的進張下做出最佳攻防判斷，獲取最高總分。",
+      color: "from-red-600/90 to-rose-900/90",
+      border: "border-red-400/50",
+      glow: "group-hover:shadow-[0_0_40px_rgba(220,38,38,0.6)]",
     },
+  ];
+
+  const subModes = [
     {
       id: "tactics",
       icon: ShieldAlert,
-      label: "戰術學院 (Tactics)",
-      desc: "收錄 11 種常見的三麻實戰情境，提供詳細的點數期望值與局收支分析。",
-      color: "from-emerald-600 to-teal-800",
-      shadow: "shadow-emerald-500/30",
-      colSpan: "md:col-span-2",
+      label: "戰術學院",
+      desc: "11 種實戰情境期望值分析",
     },
     {
       id: "terminology",
       icon: Library,
-      label: "術語百科 (Glossary)",
-      desc: "日麻三麻特有規則與麻將術語快速查閱。",
-      color: "from-purple-600 to-fuchsia-800",
-      shadow: "shadow-purple-500/30",
-      colSpan: "md:col-span-1",
-    },
-    {
-      id: "changelog",
-      icon: History,
-      label: "更新歷程 (Changelog)",
-      desc: "查看版本更新與新功能介紹。",
-      color: "from-slate-600 to-slate-800",
-      shadow: "shadow-slate-500/30",
-      colSpan: "md:col-span-1",
+      label: "術語百科",
+      desc: "日麻三麻特有規則查閱",
     },
   ];
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-[80vh] px-4 animate-in fade-in zoom-in-95 duration-500">
-      <div className="mb-10 text-center space-y-4">
-        <h2 className="text-4xl md:text-5xl font-black text-slate-800 tracking-widest drop-shadow-sm flex items-center justify-center gap-4">
-          <Gamepad2 size={40} className="text-indigo-600" />
-          選擇模式
-          <Gamepad2 size={40} className="text-indigo-600" />
-        </h2>
-        <p className="text-slate-500 font-bold tracking-widest text-sm md:text-base">
-          SELECT YOUR GAME MODE
-        </p>
-      </div>
+    <div className="absolute inset-0 w-full h-full flex flex-col overflow-hidden animate-in fade-in duration-700 bg-slate-950">
+      {/* 🌟 沉浸式背景圖與漸層遮罩 (Left to Right Gradient) */}
+      <div
+        className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-40 scale-105"
+        style={{
+          backgroundImage:
+            "url('https://images.unsplash.com/photo-1611996575749-79a3a250f948?q=80&w=2070&auto=format&fit=crop')",
+        }}
+      ></div>
+      {/* 讓左側保持黑暗以凸顯標題，右側稍微透出背景 */}
+      <div className="absolute inset-0 bg-gradient-to-r from-slate-950 via-slate-900/80 to-transparent"></div>
+      {/* 底部加上漸層，讓左下的輔助按鈕清晰可見 */}
+      <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-slate-950 to-transparent"></div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-4xl">
-        {modes.map((mode) => {
-          const Icon = mode.icon;
-          return (
+      <div className="relative z-10 w-full h-full flex flex-col md:flex-row p-6 md:p-12 lg:p-16 max-w-[1600px] mx-auto">
+        {/* ================= 左側：標題區與底部輔助功能 ================= */}
+        <div className="flex flex-col justify-between w-full md:w-1/2 h-full pb-8">
+          {/* 大廳歡迎標題 */}
+          <div className="mt-4 md:mt-12 space-y-2 animate-in slide-in-from-left-8 duration-700">
+            <h2 className="text-5xl md:text-7xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white to-slate-400 tracking-tight drop-shadow-2xl">
+              CHOOSE YOUR <br />
+              BATTLEFIELD.
+            </h2>
+            <p className="text-emerald-400 font-bold tracking-[0.3em] text-sm md:text-base mt-4 flex items-center gap-2">
+              <span className="w-8 h-0.5 bg-emerald-400"></span> SELECT GAME
+              MODE
+            </p>
+          </div>
+
+          {/* 左下方：戰術學院與百科 (Glassmorphism 小卡) */}
+          <div className="mt-auto flex flex-col sm:flex-row gap-4 animate-in slide-in-from-bottom-8 duration-700 delay-200">
+            {subModes.map((mode) => (
+              <button
+                key={mode.id}
+                onClick={() => onSelectMode(mode.id)}
+                className="group flex items-center gap-4 bg-white/5 hover:bg-white/15 border border-white/10 backdrop-blur-md p-4 rounded-2xl transition-all hover:-translate-y-1 shadow-lg w-full sm:w-64"
+              >
+                <div className="p-2.5 bg-slate-800/80 rounded-xl text-slate-300 group-hover:text-emerald-400 transition-colors shadow-inner">
+                  <mode.icon size={24} />
+                </div>
+                <div className="text-left">
+                  <h4 className="text-white font-bold tracking-wide">
+                    {mode.label}
+                  </h4>
+                  <p className="text-[10px] text-slate-400 mt-0.5 line-clamp-1">
+                    {mode.desc}
+                  </p>
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* ================= 右側：大型主遊戲模式選單 ================= */}
+        <div className="w-full md:w-1/2 flex flex-col justify-center gap-6 mt-12 md:mt-0 md:pl-12 lg:pl-24 animate-in slide-in-from-right-8 duration-700 delay-100">
+          {mainModes.map((mode) => (
             <button
               key={mode.id}
               onClick={() => onSelectMode(mode.id)}
-              className={`relative group overflow-hidden rounded-3xl p-6 md:p-8 text-left transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl bg-gradient-to-br ${mode.color} ${mode.shadow} ${mode.colSpan} border border-white/10`}
+              className={`group relative overflow-hidden rounded-3xl p-6 md:p-8 lg:p-10 text-left transition-all duration-300 hover:scale-[1.02] bg-gradient-to-br ${mode.color} border-2 ${mode.border} ${mode.glow} shadow-2xl flex items-center justify-between`}
             >
-              {/* 背景大型裝飾圖示 */}
-              <div className="absolute top-0 right-0 -mt-6 -mr-6 text-white/10 transition-transform duration-500 group-hover:scale-125 group-hover:-rotate-12">
-                <Icon size={160} />
+              {/* 背景斜紋裝飾與 Icon 水印 */}
+              <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMiIgY3k9IjIiIHI9IjIiIGZpbGw9IiNmZmZmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSIvPjwvc3ZnPg==')] opacity-30 mix-blend-overlay"></div>
+              <div className="absolute right-0 top-1/2 -translate-y-1/2 -mr-8 text-white/10 transition-transform duration-700 group-hover:scale-125 group-hover:-rotate-12">
+                <mode.icon size={180} />
               </div>
-              <div className="relative z-10 text-white">
-                <div className="flex items-center gap-4 mb-3">
-                  <div className="p-3 bg-white/20 rounded-xl backdrop-blur-md shadow-inner">
-                    <Icon size={32} className="text-white" />
-                  </div>
-                  <h3 className="text-2xl md:text-3xl font-black tracking-wider drop-shadow-md">
-                    {mode.label}
-                  </h3>
-                </div>
-                <p className="text-white/80 font-medium text-sm md:text-base leading-relaxed drop-shadow-sm">
+
+              <div className="relative z-10 w-4/5">
+                <p className="text-white/70 font-black tracking-[0.2em] text-xs md:text-sm mb-1">
+                  {mode.subLabel}
+                </p>
+                <h3 className="text-3xl md:text-4xl lg:text-5xl font-black text-white tracking-widest drop-shadow-lg mb-3">
+                  {mode.label}
+                </h3>
+                <p className="text-white/80 font-medium text-sm md:text-base leading-relaxed drop-shadow-sm pr-4">
                   {mode.desc}
                 </p>
               </div>
+
+              {/* 右側箭頭指示 */}
+              <div className="relative z-10 w-12 h-12 rounded-full bg-white/10 flex items-center justify-center border border-white/20 group-hover:bg-white group-hover:text-slate-900 transition-all duration-300">
+                <ChevronRight
+                  size={24}
+                  className="transform group-hover:translate-x-1 transition-transform"
+                />
+              </div>
             </button>
-          );
-        })}
+          ))}
+        </div>
       </div>
     </div>
   );
 };
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState("home"); // 🌟 預設啟動畫面改為 "home" 大廳
+  const [activeTab, setActiveTab] = useState("home");
   const [tournamentContext, setTournamentContext] = useState({
     isInRoom: false,
     tid: null,
     myPlayerId: null,
   });
-
   const [isMuted, setIsMuted] = useState(
     () => localStorage.getItem("sanma_muted") === "true"
   );
@@ -333,18 +372,15 @@ export default function App() {
     stopRiichi();
     if (isMuted) return;
 
-    // 🌟 在遊戲內 (沙盒或連線中) 才播遊戲音樂，在大廳 (home 或 tournamentLobby 等待區) 播大廳音樂
     const isPlayingGame =
       activeTab === "simulation" ||
       (activeTab === "tournamentLobby" && tournamentContext.isInRoom);
-
     if (isPlayingGame) {
       if (isRiichiBgmActive) playRiichi();
       else playGame();
     } else {
       playLobby();
     }
-
     return () => {
       stopLobby();
       stopGame();
@@ -366,7 +402,6 @@ export default function App() {
 
   const handleTabSwitch = async (targetTabId) => {
     playClick();
-
     if (
       activeTab === "tournamentLobby" &&
       targetTabId !== "tournamentLobby" &&
@@ -386,13 +421,15 @@ export default function App() {
   };
 
   return (
-    <div className="h-screen w-screen font-sans text-slate-900 flex flex-col overflow-hidden relative bg-slate-100">
+    <div className="h-screen w-screen font-sans text-slate-900 flex flex-col overflow-hidden relative bg-slate-950">
+      {/* 🌟 傳入 onOpenChangelog */}
       <AppHeader
         activeTab={activeTab}
         onGoHome={() => handleTabSwitch("home")}
         isMuted={isMuted}
         toggleMute={toggleMute}
         onOpenSettings={() => setShowSettings(true)}
+        onOpenChangelog={() => handleTabSwitch("changelog")}
       />
 
       <AudioSettingsModal
@@ -404,25 +441,32 @@ export default function App() {
         setSfxVolume={setSfxVolume}
       />
 
-      {/* 🌟 背景加上輕微的漸層感，讓畫面更立體 */}
       <AudioContext.Provider
         value={{ isMuted, setIsRiichiBgmActive, sfxVolume }}
       >
-        <main className="flex-1 overflow-y-auto w-full touch-pan-y relative bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-100 via-slate-200 to-slate-300">
-          <div className="max-w-5xl mx-auto px-2 md:px-4 py-6 pb-24 h-full">
-            {/* 🌟 取代原本的 TabNavigation，首頁直接渲染大廳卡片 */}
-            {activeTab === "home" && (
-              <GameLobby onSelectMode={handleTabSwitch} />
-            )}
-
-            {activeTab === "simulation" && <SimulationMode />}
-            {activeTab === "tournamentLobby" && (
-              <TournamentManager onContextUpdate={setTournamentContext} />
-            )}
-            {activeTab === "tactics" && <AttackDefenseTactics />}
-            {activeTab === "terminology" && <TerminologyGlossary />}
-            {activeTab === "changelog" && <ChangelogView />}
-          </div>
+        {/* 🌟 根據是否在首頁，切換外層容器的樣式 */}
+        <main
+          className={`flex-1 overflow-y-auto w-full touch-pan-y relative ${
+            activeTab === "home"
+              ? "bg-slate-950"
+              : "bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-100 via-slate-200 to-slate-300"
+          }`}
+        >
+          {activeTab === "home" ? (
+            // 🌟 首頁：全螢幕滿版
+            <GameLobby onSelectMode={handleTabSwitch} />
+          ) : (
+            // 🌟 其他頁面：維持原本的置中與最大寬度限制
+            <div className="max-w-[1400px] mx-auto px-2 md:px-4 py-6 pb-24 h-full">
+              {activeTab === "simulation" && <SimulationMode />}
+              {activeTab === "tournamentLobby" && (
+                <TournamentManager onContextUpdate={setTournamentContext} />
+              )}
+              {activeTab === "tactics" && <AttackDefenseTactics />}
+              {activeTab === "terminology" && <TerminologyGlossary />}
+              {activeTab === "changelog" && <ChangelogView />}
+            </div>
+          )}
         </main>
       </AudioContext.Provider>
     </div>

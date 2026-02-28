@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Cpu, User, Zap, Eye } from "lucide-react";
 import useSound from "use-sound";
 import { AudioContext } from "../../App"; // 取得靜音狀態
@@ -11,9 +11,18 @@ import { SimFinishedView } from "./SimFinishedView";
 import { SimActionMenu } from "./SimActionMenu";
 import { MahjongEngine } from "../../engine/MahjongEngine";
 import { TILE_LABELS, getTileName } from "../../constants/mahjong";
+import { CutInEffect } from "../../components/CutInEffect"; // 🌟 引入特效系統
+import { CentralCompass } from "../../components/CentralCompass";
 
 export const SimulationMode = ({ tournamentConfig }) => {
   const { state, actions } = useSimulation();
+
+  // 🌟 Phase 1 新增：紀錄目前要播放哪種 Cut-in 特效
+  const [cutInEvent, setCutInEvent] = useState(null);
+
+  // 🌟 Phase 1 新增：用 Ref 追蹤前一次的狀態，用來偵測「瞬間變化」
+  const prevRiichiState = useRef(state.isRiichi || [false, false, false]);
+  const prevGameState = useRef(state.gameState);
 
   // 🌟 新增：狀態管理，用來記錄目前滑鼠滑過的手牌牌型 (例如 '1m', '5p')
   const [hoveredTileType, setHoveredTileType] = useState(null);
@@ -30,6 +39,42 @@ export const SimulationMode = ({ tournamentConfig }) => {
     volume: sfxVolume,
     soundEnabled: !isMuted,
   });
+
+  // 1. 監聽立直觸發
+  useEffect(() => {
+    if (!state.isRiichi) return;
+
+    state.isRiichi.forEach((isRiichi, idx) => {
+      // 偵測到某一家從「未立直」變成「立直」
+      if (isRiichi && !prevRiichiState.current[idx]) {
+        setCutInEvent({
+          type: "riichi",
+          text: "立直",
+          color: idx === 0 ? "text-red-500" : "text-orange-400",
+        });
+      }
+    });
+    prevRiichiState.current = [...state.isRiichi];
+  }, [state.isRiichi]);
+
+  // 2. 監聽和牌(榮和/自摸)觸發
+  useEffect(() => {
+    if (
+      state.gameState === "finished" &&
+      prevGameState.current !== "finished"
+    ) {
+      // 排除流局，只有在有和牌結果時才觸發
+      if (state.result && state.result.type !== "draw") {
+        const isTsumo = state.result.type === "tsumo";
+        setCutInEvent({
+          type: "win",
+          text: isTsumo ? "自摸" : "榮和",
+          color: "text-yellow-400",
+        });
+      }
+    }
+    prevGameState.current = state.gameState;
+  }, [state.gameState, state.result]);
 
   // 🌟 實作倒數警告音效
   React.useEffect(() => {
@@ -238,41 +283,41 @@ export const SimulationMode = ({ tournamentConfig }) => {
     lastDrawnIdx = state.hands[0].lastIndexOf(state.lastDrawnTile);
   }
 
+  // 🌟 Phase 3 修復：為手牌建立穩定的 Key 追蹤器
+  const handTileCounts = {};
+
   return (
     <div className="space-y-4">
-      {/* 🌟 頂部資訊列 */}
-      <div className="bg-slate-800 text-white p-3 md:p-4 rounded-xl shadow-lg flex justify-between items-center gap-4">
-        <div className="flex gap-4 items-center">
-          <div className="bg-slate-700 px-3 py-1 rounded-lg text-sm font-bold border border-slate-600">
-            {TILE_LABELS[state.context.pWind]}風場 /{" "}
-            {TILE_LABELS[state.context.sWind]}家
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-slate-400 font-bold">寶牌指示</span>
-            <div className="flex gap-1">
-              {(Array.isArray(state.context.doraInd)
-                ? state.context.doraInd
-                : [state.context.doraInd]
-              ).map((d, i) => (
-                <Tile
-                  key={i}
-                  tile={d}
-                  small={true}
-                  className="!w-6 !h-9 !border-b-2"
-                />
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-
       {state.gameState === "finished" && (
         <SimFinishedView state={state} actions={actions} />
       )}
 
-      <div className="bg-emerald-800 p-4 rounded-xl shadow-inner relative min-h-[500px] flex flex-col justify-between overflow-hidden">
+      {/* 🌟 修改綠色牌桌背景，加入 overflow-hidden 確保羅盤等絕對定位元素不出界，並設定滿版高度 */}
+      <div className="bg-emerald-800 p-4 rounded-xl shadow-[inset_0_0_50px_rgba(0,0,0,0.5)] relative min-h-[600px] flex flex-col justify-between overflow-hidden">
+        {/* 🌟 1. 放入中央羅盤 */}
+        {state.gameState !== "setup" && (
+          <CentralCompass state={state} checkDora={checkDora} />
+        )}
+
+        {/* 🌟 2. 獨立的 AR 浮空倒數計時器 (右上角) */}
+        {state.currentTurn === 0 &&
+          state.config.timeLimit > 0 &&
+          !state.actionMenu &&
+          !state.isRiichi[0] &&
+          state.gameState !== "finished" && (
+            <div
+              className={`absolute top-6 right-6 px-4 py-2 rounded-lg font-mono font-black text-2xl z-40 backdrop-blur-sm border-2 transition-colors ${
+                state.timeLeft <= 5
+                  ? "bg-red-900/80 border-red-500 text-red-400 animate-pulse shadow-[0_0_20px_rgba(239,68,68,0.6)]"
+                  : "bg-slate-900/60 border-slate-600 text-yellow-400"
+              }`}
+            >
+              ⏱ {state.timeLeft}s
+            </div>
+          )}
         {/* Opponents Area */}
-        <div className="w-full overflow-x-auto scrollbar-hide">
+        {/* 修正後：將 overflow-x-auto 改為 visible，確保動畫能超出容器邊界 */}
+        <div className="w-full overflow-visible">
           <div className="flex justify-between items-start min-w-[550px] md:min-w-full pb-2">
             {/* 上家 AI 區域 */}
             <div
@@ -338,9 +383,12 @@ export const SimulationMode = ({ tournamentConfig }) => {
                   );
                 })}
               </div>
-              <div className="grid grid-cols-6 gap-0.5 md:gap-1 mt-2 w-max">
+              <div className="grid grid-cols-6 gap-0.5 md:gap-1 mt-2 w-max relative overflow-visible">
                 {state.rivers[2].map((t, i) => {
                   const isMatched = hoveredTileType === t;
+                  const isJustDiscarded =
+                    state.shakingPlayer === 2 &&
+                    i === state.rivers[2].length - 1;
                   return (
                     <Tile
                       key={`r2-${i}`}
@@ -349,6 +397,10 @@ export const SimulationMode = ({ tournamentConfig }) => {
                       isRiver={true}
                       isDora={checkDora(t)}
                       className={`!w-6 !h-9 md:!w-7 md:!h-10 !border-b-2 transition-all duration-300 ${
+                        isJustDiscarded
+                          ? "animate-tile-slam !z-50 !opacity-100"
+                          : "z-0"
+                      } ${
                         isMatched
                           ? "ring-2 ring-yellow-400 scale-110 shadow-[0_0_10px_rgba(250,204,21,0.6)] !opacity-100 relative z-10"
                           : "opacity-80"
@@ -425,19 +477,24 @@ export const SimulationMode = ({ tournamentConfig }) => {
                 })}
               </div>
               <div
-                className="grid grid-cols-6 gap-0.5 md:gap-1 mt-2 w-max"
+                className="grid grid-cols-6 gap-0.5 md:gap-1 mt-2 w-max relative overflow-visible"
                 dir="ltr"
               >
                 {state.rivers[1].map((t, i) => {
                   const isMatched = hoveredTileType === t;
+                  const isJustDiscarded =
+                    state.shakingPlayer === 1 &&
+                    i === state.rivers[1].length - 1;
                   return (
                     <Tile
                       key={`r1-${i}`}
                       tile={t}
-                      small={true}
-                      isRiver={true}
-                      isDora={checkDora(t)}
+                      // ... 其他屬性
                       className={`!w-6 !h-9 md:!w-7 md:!h-10 !border-b-2 transition-all duration-300 ${
+                        isJustDiscarded
+                          ? "animate-tile-slam !z-50 !opacity-100"
+                          : "z-0"
+                      } ${
                         isMatched
                           ? "ring-2 ring-yellow-400 scale-110 shadow-[0_0_10px_rgba(250,204,21,0.6)] !opacity-100 relative z-10"
                           : "opacity-80"
@@ -455,325 +512,294 @@ export const SimulationMode = ({ tournamentConfig }) => {
         )}
 
         {/* Player Area (自家河牌區) */}
-        <div className="flex justify-center mt-8 mb-4">
-          <div className="grid grid-cols-6 gap-0.5 md:gap-1 w-max">
-            {state.rivers[0].map((t, i) => {
-              const isMatched = hoveredTileType === t;
-              return (
-                <Tile
-                  key={`r0-${i}`}
-                  tile={t}
-                  small={true}
-                  isRiver={true}
-                  isDora={checkDora(t)}
-                  className={`!w-7 !h-10 md:!w-8 !h-11 transition-all duration-300 ${
-                    isMatched
-                      ? "ring-2 ring-yellow-400 scale-110 shadow-[0_0_10px_rgba(250,204,21,0.6)] relative z-10 !opacity-100"
-                      : "opacity-90"
-                  }`}
-                />
-              );
-            })}
-          </div>
-        </div>
-
-        <div
-          className={`relative p-4 pt-10 rounded-xl border-t-4 mt-2 ${
-            state.currentTurn === 0 && state.gameState !== "finished"
-              ? "bg-white/10 border-yellow-400 shadow-[0_-10px_20px_rgba(0,0,0,0.2)]"
-              : "border-transparent"
-          }`}
-        >
-          <div className="absolute -top-5 left-4 bg-slate-900 text-white text-xs px-3 py-1.5 rounded-full font-bold shadow-md flex items-center gap-1 z-30">
-            <User size={14} /> 自家手牌{" "}
-            {state.currentTurn === 0 &&
-              !state.actionMenu &&
-              state.gameState !== "finished" && (
-                <span className="text-yellow-400 ml-1 animate-pulse">
-                  您的回合
-                </span>
-              )}{" "}
-            {state.isRiichi[0] && (
-              <span className="bg-red-600 text-white ml-2 px-2 py-0.5 rounded-full shadow-sm">
-                立直中
-              </span>
-            )}
-          </div>
-
-          <div className="absolute -top-5 right-4 bg-slate-900 text-white text-xs px-3 py-1.5 rounded-full font-bold shadow-md flex items-center gap-3 z-30 border border-slate-700">
-            <div className="text-slate-300">
-              剩餘{" "}
-              <span className="text-emerald-400 font-black text-sm">
-                {state.deck.length}
-              </span>{" "}
-              張
-            </div>
-            {state.currentTurn === 0 &&
-              state.config.timeLimit > 0 &&
-              !state.actionMenu &&
-              !state.isRiichi[0] &&
-              state.gameState !== "finished" && (
-                <div
-                  className={`flex items-center gap-1 font-mono font-black ${
-                    state.timeLeft <= 5
-                      ? "text-red-400 animate-pulse"
-                      : "text-yellow-400"
-                  }`}
-                >
-                  ⏱ {state.timeLeft}s
-                </div>
-              )}
-          </div>
-
-          {(state.openMelds[0].length > 0 || state.kitas[0].length > 0) && (
-            <div className="flex justify-end gap-2 mb-6 pr-2">
-              {state.kitas[0].length > 0 && (
-                <div className="flex gap-0.5 mr-2 self-end border-r border-white/20 pr-3">
-                  {state.kitas[0].map((t, i) => {
-                    const isMatched = hoveredTileType === t;
-                    return (
-                      <Tile
-                        key={`k0-${i}`}
-                        tile={t}
-                        small={true}
-                        isDora={true}
-                        className={`!w-6 !h-9 md:!w-7 md:!h-10 transition-all duration-300 ${
-                          isMatched
-                            ? "ring-2 ring-yellow-400 scale-110 shadow-lg relative z-10 !opacity-100"
-                            : ""
-                        }`}
-                      />
-                    );
-                  })}
-                </div>
-              )}
-              {renderMelds(0, true)}
-            </div>
-          )}
-
-          {activeTenpaiInfo && (
-            <div className="flex justify-center mb-6 animate-in fade-in slide-in-from-bottom-2">
-              <div className="bg-emerald-900/80 border border-emerald-500 p-2 px-4 rounded-xl shadow-lg flex items-center gap-3">
-                <div className="bg-emerald-500 text-white text-xs font-black px-2 py-1 rounded">
-                  聽牌預測
-                </div>
-                <div className="flex gap-1">
-                  {activeTenpaiInfo.waitingTiles.map((wt, i) => (
-                    <Tile
-                      key={i}
-                      tile={wt}
-                      isDora={checkDora(wt)}
-                      small={true}
-                      className="!w-6 !h-9"
-                    />
-                  ))}
-                </div>
-                <div className="text-emerald-300 text-sm font-bold font-mono ml-2 border-l border-emerald-700 pl-3">
-                  剩餘 {activeTenpaiInfo.ukeire} 張
-                </div>
-              </div>
-            </div>
-          )}
-
-          {state.currentWaits && state.currentWaits.length > 0 && (
-            <div className="flex justify-center mb-8 relative z-30 animate-in fade-in zoom-in-95 duration-300">
-              <div
-                className={`px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-4 backdrop-blur-md border-2 ${
-                  state.isRiichi[0]
-                    ? "bg-red-950/90 border-red-500/60 shadow-[0_0_25px_rgba(239,68,68,0.3)]"
-                    : "bg-slate-900/90 border-emerald-500/60 shadow-[0_0_25px_rgba(16,185,129,0.2)]"
-                }`}
-              >
-                <div
-                  className={`text-sm font-black flex items-center gap-1.5 ${
-                    state.isRiichi[0] ? "text-red-400" : "text-emerald-400"
-                  }`}
-                >
-                  {state.isRiichi[0] ? (
-                    <>
-                      <Zap size={18} className="fill-red-400 animate-pulse" />{" "}
-                      立直聽牌
-                    </>
-                  ) : (
-                    <>
-                      <Eye size={18} /> 默聽中
-                    </>
-                  )}
-                </div>
-                <div className="w-px h-8 bg-slate-600/50"></div>
-                <div className="flex gap-1.5 items-center">
-                  {state.currentWaits.map((tile, idx) => (
-                    <div key={idx} className="relative">
-                      {checkDora(tile) && (
-                        <div className="absolute -inset-1 bg-yellow-400/20 blur-sm rounded-full"></div>
-                      )}
-                      <Tile
-                        tile={tile}
-                        isDora={checkDora(tile)}
-                        small={true}
-                        className="!w-7 !h-10 md:!w-8 md:!h-11 shadow-lg"
-                      />
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* 外層滾動容器：自家手牌區 */}
-          <div className="w-full overflow-x-auto scrollbar-hide -mt-6 mb-2">
-            <div className="flex justify-start md:justify-center gap-1 md:gap-2 px-4 pt-12 pb-6 min-w-full w-max">
-              {state.hands[0].map((t, i) => {
-                const isSelected = state.selectedTileIndex === i;
-                const isJustDrawn =
-                  i === lastDrawnIdx && state.currentTurn === 0;
-                const wScore = state.weights[i];
-                const isDefenseMode =
-                  state.tacticalInfo?.stance === "defend" ||
-                  state.tacticalInfo?.stance === "caution";
-                let badgeClass = "bg-slate-700 text-slate-200",
-                  displayScore = "";
-
-                if (
-                  wScore !== undefined &&
-                  state.currentTurn === 0 &&
-                  state.gameState !== "finished" &&
-                  !state.isRiichi[0]
-                ) {
-                  const minScore = Math.min(...Object.values(state.weights));
-                  if (isDefenseMode) {
-                    displayScore = `危 ${wScore}%`;
-                    if (wScore <= 15)
-                      badgeClass =
-                        "bg-emerald-500 text-white font-bold ring-2 ring-emerald-300";
-                    else if (wScore >= 50)
-                      badgeClass = "bg-red-500 text-white font-bold";
-                    else badgeClass = "bg-yellow-500 text-white font-bold";
-                    if (Math.abs(wScore - minScore) < 0.05)
-                      badgeClass += " scale-110 -translate-y-1";
-                  } else {
-                    if (wScore <= -1000) {
-                      displayScore = `聽牌`;
-                      if (Math.abs(wScore - minScore) < 0.05)
-                        badgeClass =
-                          "bg-emerald-500 text-white ring-2 ring-emerald-300 scale-110 -translate-y-1 font-bold";
-                    } else if (wScore >= 1000) {
-                      displayScore = `破聽`;
-                      badgeClass = "bg-red-500 text-white font-bold";
-                    } else {
-                      displayScore = wScore.toFixed(1);
-                      if (Math.abs(wScore - minScore) < 0.05)
-                        badgeClass =
-                          "bg-emerald-500 text-white ring-2 ring-emerald-300 scale-110 -translate-y-1 font-bold";
-                    }
-                  }
-                }
-
-                // 🌟 當前滑鼠是否正好指在這張牌的牌型上
-                const isHoverMatched = hoveredTileType === t;
-
+        {/* 🌟 佈局大重構：將「河牌區」與「手牌區」打包進同一個底部容器，徹底解決河牌置中飄浮的問題 */}
+        <div className="flex flex-col w-full mt-auto relative z-10 pointer-events-none">
+          {/* Player Area (自家河牌區) */}
+          <div className="flex justify-center mb-2 md:mb-3 pointer-events-auto">
+            <div className="grid grid-cols-6 gap-0.5 md:gap-1 w-max">
+              {state.rivers[0].map((t, i) => {
+                const isMatched = hoveredTileType === t;
+                const isJustDiscarded =
+                  state.shakingPlayer === 0 && i === state.rivers[0].length - 1;
                 return (
-                  <div key={`p-${t}-${i}`} className="relative mt-2">
-                    {wScore !== undefined &&
-                      state.currentTurn === 0 &&
-                      !state.actionMenu &&
-                      state.gameState !== "finished" &&
-                      !state.isRiichi[0] &&
-                      (!isTournament || wScore <= -1000) && (
-                        <div
-                          className={`absolute -top-7 left-1/2 transform -translate-x-1/2 text-[10px] md:text-xs px-1.5 py-0.5 rounded shadow-sm z-20 font-mono whitespace-nowrap ${badgeClass}`}
-                        >
-                          {displayScore}
-                        </div>
-                      )}
-                    <Tile
-                      tile={t}
-                      isSelected={isSelected && !state.isRiichi[0]}
-                      isDora={checkDora(t)}
-                      isJustDrawn={isJustDrawn}
-                      // 🌟 新增滑鼠事件：遊戲進行中才啟動高亮輔助
-                      onMouseEnter={() => {
-                        if (
-                          state.gameState === "playing" &&
-                          !state.isRiichi[0]
-                        ) {
-                          setHoveredTileType(t);
-                        }
-                      }}
-                      onMouseLeave={() => setHoveredTileType(null)}
-                      onClick={() =>
-                        state.currentTurn === 0 &&
-                        !state.actionMenu &&
-                        state.gameState !== "finished" &&
-                        !state.isRiichi[0] &&
-                        actions.setSelectedTileIndex(i)
-                      }
-                      // 🌟 新增：手牌本身的微幅放大與光暈效果
-                      className={`transition-all duration-300 ${
-                        isHoverMatched
-                          ? "scale-110 -translate-y-2 ring-2 ring-emerald-400 shadow-[0_5px_15px_rgba(52,211,153,0.5)] relative z-10"
-                          : ""
-                      }`}
-                    />
-                  </div>
+                  <Tile
+                    key={`r0-${i}`}
+                    tile={t}
+                    small={true}
+                    isRiver={true}
+                    isDora={checkDora(t)}
+                    // 🌟 讓河牌帶有 90% 透明度與模糊。若真的打到第 4 排碰到羅盤，也能微微透出底部資訊
+                    className={`!w-7 !h-10 md:!w-8 md:!h-11 transition-all duration-300 ${
+                      isJustDiscarded
+                        ? "animate-tile-slam !z-50 !opacity-100"
+                        : "z-0"
+                    } ${
+                      isMatched
+                        ? "ring-2 ring-yellow-400 scale-110 shadow-[0_0_10px_rgba(250,204,21,0.6)] relative z-10 !opacity-100"
+                        : "opacity-90 hover:opacity-100"
+                    }`}
+                  />
                 );
               })}
             </div>
           </div>
 
-          <div className="flex justify-between items-center h-12 mt-6">
-            <div className="text-xs text-emerald-100 bg-black/40 p-2 px-3 rounded-lg max-w-[50%] leading-tight border border-white/10 shadow-inner hidden md:block">
+          {/* 自家手牌區容器 */}
+          <div
+            className={`relative p-2 pt-5 rounded-xl transition-colors mt-0 pointer-events-auto ${
+              state.currentTurn === 0 && state.gameState !== "finished"
+                ? "bg-gradient-to-t from-black/40 to-transparent shadow-[0_-15px_30px_rgba(0,0,0,0.15)]"
+                : "bg-transparent"
+            }`}
+          >
+            {/* 左上角標籤 */}
+            <div className="absolute -top-3 left-4 bg-slate-900/90 text-slate-300 text-[10px] md:text-xs px-3 py-1 rounded-full shadow-md flex items-center gap-1 z-30 border border-slate-700">
+              <User size={12} /> 自家
               {state.currentTurn === 0 &&
-              !state.actionMenu &&
-              state.gameState !== "finished" &&
-              !state.isRiichi[0]
-                ? isTournament
-                  ? "⚔️ 錦標賽對戰中！請相信自己的判斷..."
-                  : currentReason
-                : state.isRiichi[0]
-                ? "立直自動摸切中..."
-                : "等待進行中..."}
-            </div>
-            <div className="flex gap-2 ml-auto">
-              {state.canRiichi &&
-                !state.isRiichi[0] &&
-                state.currentTurn === 0 &&
                 !state.actionMenu &&
                 state.gameState !== "finished" && (
-                  <button
-                    onClick={() =>
-                      actions.setPendingRiichi(!state.pendingRiichi)
-                    }
-                    className={`px-5 py-2 rounded-full font-black shadow-lg transition-all flex items-center gap-1 animate-pulse ${
-                      state.pendingRiichi
-                        ? "bg-red-600 text-white scale-105"
-                        : "bg-white text-red-600 hover:bg-red-50 border-2 border-red-600"
-                    }`}
-                  >
-                    ⚡ {state.pendingRiichi ? "取消立直" : "立直!"}
-                  </button>
+                  <span className="text-yellow-400 ml-1 font-bold animate-pulse">
+                    您的回合
+                  </span>
                 )}
-              {state.currentTurn === 0 &&
+              {state.isRiichi[0] && (
+                <span className="bg-red-600 text-white ml-2 px-1.5 py-0.5 rounded-full shadow-sm text-[10px]">
+                  立直中
+                </span>
+              )}
+            </div>
+
+            {/* 副露區 */}
+            {(state.openMelds[0].length > 0 || state.kitas[0].length > 0) && (
+              <div className="flex justify-end gap-2 mb-3 pr-2">
+                {state.kitas[0].length > 0 && (
+                  <div className="flex gap-0.5 mr-2 self-end border-r border-white/20 pr-3">
+                    {state.kitas[0].map((t, i) => {
+                      const isMatched = hoveredTileType === t;
+                      return (
+                        <Tile
+                          key={`k0-${i}`}
+                          tile={t}
+                          small={true}
+                          isDora={true}
+                          className={`!w-6 !h-9 md:!w-7 md:!h-10 transition-all duration-300 ${
+                            isMatched
+                              ? "ring-2 ring-yellow-400 scale-110 shadow-lg relative z-10 !opacity-100"
+                              : ""
+                          }`}
+                        />
+                      );
+                    })}
+                  </div>
+                )}
+                {renderMelds(0, true)}
+              </div>
+            )}
+
+            {/* 聽牌預測 */}
+            {activeTenpaiInfo && (
+              <div className="flex justify-center mb-3 animate-in fade-in slide-in-from-bottom-2">
+                <div className="bg-emerald-900/80 border border-emerald-500 p-1.5 px-3 rounded-xl shadow-lg flex items-center gap-3">
+                  <div className="bg-emerald-500 text-white text-[10px] font-black px-1.5 py-0.5 rounded">
+                    聽牌預測
+                  </div>
+                  <div className="flex gap-1">
+                    {activeTenpaiInfo.waitingTiles.map((wt, i) => (
+                      <Tile
+                        key={i}
+                        tile={wt}
+                        isDora={checkDora(wt)}
+                        small={true}
+                        className="!w-5 !h-7 md:!w-6 md:!h-9"
+                      />
+                    ))}
+                  </div>
+                  <div className="text-emerald-300 text-xs font-bold font-mono ml-1 border-l border-emerald-700 pl-2">
+                    剩 {activeTenpaiInfo.ukeire} 張
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* 立直聽牌顯示 */}
+            {state.currentWaits && state.currentWaits.length > 0 && (
+              <div className="flex justify-center mb-4 relative z-30 animate-in fade-in zoom-in-95 duration-300">
+                <div
+                  className={`px-4 py-2 rounded-2xl shadow-xl flex items-center gap-3 backdrop-blur-md border-2 ${
+                    state.isRiichi[0]
+                      ? "bg-red-950/90 border-red-500/60 shadow-[0_0_20px_rgba(239,68,68,0.3)]"
+                      : "bg-slate-900/90 border-emerald-500/60 shadow-[0_0_20px_rgba(16,185,129,0.2)]"
+                  }`}
+                >
+                  <div className="flex gap-1 items-center">
+                    {state.currentWaits.map((tile, idx) => (
+                      <div key={idx} className="relative">
+                        {checkDora(tile) && (
+                          <div className="absolute -inset-1 bg-yellow-400/20 blur-sm rounded-full"></div>
+                        )}
+                        <Tile
+                          tile={tile}
+                          isDora={checkDora(tile)}
+                          small={true}
+                          className="!w-6 !h-9 md:!w-7 md:!h-10 shadow-lg"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* 外層滾動容器：自家手牌區 */}
+            <div className="w-full overflow-x-auto scrollbar-hide -mt-2 mb-1">
+              {/* 🌟 修正：加大 pt-12 (原本是 pt-6)，徹底釋放上方空間，避免權重標籤被 CSS 裁切 */}
+              <div className="flex justify-start md:justify-center gap-1 md:gap-2 px-2 pt-12 pb-2 min-w-full w-max">
+                {state.hands[0].map((t, i) => {
+                  const currentCount = handTileCounts[t] || 0;
+                  handTileCounts[t] = currentCount + 1;
+                  const stableKey = `hand0-${t}-${currentCount}`;
+                  const isSelected = state.selectedTileIndex === i;
+                  const isJustDrawn =
+                    i === lastDrawnIdx && state.currentTurn === 0;
+                  const wScore = state.weights[i];
+                  const isDefenseMode =
+                    state.tacticalInfo?.stance === "defend" ||
+                    state.tacticalInfo?.stance === "caution";
+                  let badgeClass = "bg-slate-700 text-slate-200",
+                    displayScore = "";
+
+                  if (
+                    wScore !== undefined &&
+                    state.currentTurn === 0 &&
+                    state.gameState !== "finished" &&
+                    !state.isRiichi[0]
+                  ) {
+                    const minScore = Math.min(...Object.values(state.weights));
+                    if (isDefenseMode) {
+                      displayScore = `危 ${wScore}%`;
+                      if (wScore <= 15)
+                        badgeClass =
+                          "bg-emerald-500 text-white font-bold ring-2 ring-emerald-300";
+                      else if (wScore >= 50)
+                        badgeClass = "bg-red-500 text-white font-bold";
+                      else badgeClass = "bg-yellow-500 text-white font-bold";
+                      if (Math.abs(wScore - minScore) < 0.05)
+                        badgeClass += " scale-110 -translate-y-1";
+                    } else {
+                      if (wScore <= -1000) {
+                        displayScore = `聽牌`;
+                        if (Math.abs(wScore - minScore) < 0.05)
+                          badgeClass =
+                            "bg-emerald-500 text-white ring-2 ring-emerald-300 scale-110 -translate-y-1 font-bold";
+                      } else if (wScore >= 1000) {
+                        displayScore = `破聽`;
+                        badgeClass = "bg-red-500 text-white font-bold";
+                      } else {
+                        displayScore = wScore.toFixed(1);
+                        if (Math.abs(wScore - minScore) < 0.05)
+                          badgeClass =
+                            "bg-emerald-500 text-white ring-2 ring-emerald-300 scale-110 -translate-y-1 font-bold";
+                      }
+                    }
+                  }
+                  const isHoverMatched = hoveredTileType === t;
+
+                  return (
+                    <div key={stableKey} className="relative flex-shrink-0">
+                      {wScore !== undefined &&
+                        state.currentTurn === 0 &&
+                        !state.actionMenu &&
+                        state.gameState !== "finished" &&
+                        !state.isRiichi[0] &&
+                        (!isTournament || wScore <= -1000) && (
+                          <div
+                            className={`absolute -top-7 left-1/2 transform -translate-x-1/2 text-[9px] md:text-[10px] px-1.5 py-0.5 rounded shadow-sm z-20 font-mono whitespace-nowrap ${badgeClass}`}
+                          >
+                            {displayScore}
+                          </div>
+                        )}
+                      <Tile
+                        tile={t}
+                        isSelected={isSelected && !state.isRiichi[0]}
+                        isDora={checkDora(t)}
+                        isJustDrawn={isJustDrawn}
+                        onMouseEnter={() => {
+                          if (
+                            state.gameState === "playing" &&
+                            !state.isRiichi[0]
+                          )
+                            setHoveredTileType(t);
+                        }}
+                        onMouseLeave={() => setHoveredTileType(null)}
+                        onClick={() =>
+                          state.currentTurn === 0 &&
+                          !state.actionMenu &&
+                          state.gameState !== "finished" &&
+                          !state.isRiichi[0] &&
+                          actions.setSelectedTileIndex(i)
+                        }
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* 底部按鈕 */}
+            <div className="flex justify-between items-center h-10 mt-2">
+              <div className="text-[10px] md:text-xs text-emerald-100 bg-black/40 p-1.5 px-3 rounded-lg max-w-[50%] leading-tight border border-white/10 shadow-inner hidden md:block">
+                {state.currentTurn === 0 &&
                 !state.actionMenu &&
                 state.gameState !== "finished" &&
-                !state.isRiichi[0] && (
-                  <button
-                    disabled={state.selectedTileIndex === null}
-                    onClick={() =>
-                      actions.discardTile(0, state.selectedTileIndex)
-                    }
-                    className={`px-8 py-2 rounded-full font-bold shadow-lg transition-all ${
-                      state.selectedTileIndex !== null
-                        ? (state.pendingRiichi
-                            ? "bg-red-600 hover:bg-red-500 text-white"
-                            : "bg-blue-600 hover:bg-blue-500 text-white") +
-                          " transform hover:scale-105"
-                        : "bg-slate-700 text-slate-400 cursor-not-allowed"
-                    }`}
-                  >
-                    {state.pendingRiichi ? "宣告並打出" : "打出"}
-                  </button>
-                )}
+                !state.isRiichi[0]
+                  ? isTournament
+                    ? "⚔️ 錦標賽對戰中！請相信自己的判斷..."
+                    : currentReason
+                  : state.isRiichi[0]
+                  ? "立直自動摸切中..."
+                  : "等待進行中..."}
+              </div>
+              <div className="flex gap-2 ml-auto">
+                {state.canRiichi &&
+                  !state.isRiichi[0] &&
+                  state.currentTurn === 0 &&
+                  !state.actionMenu &&
+                  state.gameState !== "finished" && (
+                    <button
+                      onClick={() =>
+                        actions.setPendingRiichi(!state.pendingRiichi)
+                      }
+                      className={`px-4 py-1.5 md:py-2 rounded-full font-black text-sm shadow-lg transition-all flex items-center gap-1 animate-pulse ${
+                        state.pendingRiichi
+                          ? "bg-red-600 text-white scale-105"
+                          : "bg-white text-red-600 hover:bg-red-50 border-2 border-red-600"
+                      }`}
+                    >
+                      ⚡ {state.pendingRiichi ? "取消立直" : "立直!"}
+                    </button>
+                  )}
+                {state.currentTurn === 0 &&
+                  !state.actionMenu &&
+                  state.gameState !== "finished" &&
+                  !state.isRiichi[0] && (
+                    <button
+                      disabled={state.selectedTileIndex === null}
+                      onClick={() =>
+                        actions.discardTile(0, state.selectedTileIndex)
+                      }
+                      className={`px-6 md:px-8 py-1.5 md:py-2 text-sm rounded-full font-bold shadow-lg transition-all ${
+                        state.selectedTileIndex !== null
+                          ? (state.pendingRiichi
+                              ? "bg-red-600 hover:bg-red-500 text-white"
+                              : "bg-blue-600 hover:bg-blue-500 text-white") +
+                            " transform hover:scale-105"
+                          : "bg-slate-700 text-slate-400 cursor-not-allowed"
+                      }`}
+                    >
+                      {state.pendingRiichi ? "宣告並打出" : "打出"}
+                    </button>
+                  )}
+              </div>
             </div>
           </div>
         </div>
@@ -783,6 +809,16 @@ export const SimulationMode = ({ tournamentConfig }) => {
         state.currentTurn === 0 &&
         state.gameState === "playing" &&
         state.tacticalInfo && <TacticalAdvisor info={state.tacticalInfo} />}
+
+      {/* 🌟 Phase 1: 畫面劫持特效渲染器 */}
+      {cutInEvent && (
+        <CutInEffect
+          type={cutInEvent.type}
+          text={cutInEvent.text}
+          color={cutInEvent.color}
+          onComplete={() => setCutInEvent(null)}
+        />
+      )}
     </div>
   );
 };
