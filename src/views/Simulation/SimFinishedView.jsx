@@ -1,6 +1,8 @@
 import React, { useState } from "react";
 // 🌟 記得引入 Eye 與 Maximize2 這兩個新圖示
 import { Trophy, AlertTriangle, Eye, Maximize2 } from "lucide-react";
+// 🌟 新增：引入麻將牌名轉換函式
+import { getTileName } from "../../constants/mahjong";
 
 export const SimFinishedView = ({ state, actions }) => {
   const isDoubleRon = state.winner.type === "double_ron";
@@ -103,9 +105,10 @@ export const SimFinishedView = ({ state, actions }) => {
                   {state.scoreResult.doraIndicators?.map((t, i) => (
                     <span
                       key={i}
-                      className="px-1.5 py-0.5 bg-slate-200 text-slate-900 rounded font-black border-b-2 border-slate-400"
+                      className="px-2 py-0.5 bg-slate-200 text-slate-900 rounded font-black border-b-2 border-slate-400"
                     >
-                      {t}
+                      {/* 🌟 替換這裡：使用 getTileName(t) 顯示完整文字 */}
+                      {getTileName(t)}
                     </span>
                   ))}
                 </div>
@@ -120,9 +123,10 @@ export const SimFinishedView = ({ state, actions }) => {
                       {state.scoreResult.uraIndicators.map((t, i) => (
                         <span
                           key={i}
-                          className="px-1.5 py-0.5 bg-slate-700 text-slate-100 rounded font-black border-b-2 border-slate-900"
+                          className="px-2 py-0.5 bg-slate-700 text-slate-100 rounded font-black border-b-2 border-slate-900"
                         >
-                          {t}
+                          {/* 🌟 替換這裡：使用 getTileName(t) 顯示完整文字 */}
+                          {getTileName(t)}
                         </span>
                       ))}
                     </div>
