@@ -236,23 +236,6 @@ export const SimulationMode = ({ tournamentConfig }) => {
           <CentralCompass state={state} checkDora={checkDora} />
         )}
 
-        {/* 🌟 5. 補回右上角的 AR 浮空倒數計時器 */}
-        {state.currentTurn === 0 &&
-          state.config.timeLimit > 0 &&
-          !state.actionMenu &&
-          !state.isRiichi[0] &&
-          state.gameState !== "finished" && (
-            <div
-              className={`absolute top-6 right-6 px-4 py-2 rounded-lg font-mono font-black text-2xl z-40 backdrop-blur-sm border-2 transition-colors ${
-                state.timeLeft <= 5
-                  ? "bg-red-900/80 border-red-500 text-red-400 animate-pulse shadow-[0_0_20px_rgba(239,68,68,0.6)]"
-                  : "bg-slate-900/60 border-slate-600 text-yellow-400"
-              }`}
-            >
-              ⏱ {state.timeLeft}s
-            </div>
-          )}
-
         {/* Opponents Area (加入 shrink-0 固定在上方) */}
         <div className="w-full overflow-visible shrink-0 pointer-events-auto">
           <div className="flex justify-between items-start min-w-[550px] md:min-w-full pb-2">
@@ -471,6 +454,20 @@ export const SimulationMode = ({ tournamentConfig }) => {
             {/* 左上角精簡標籤 */}
             <div className="absolute -top-3 left-4 bg-slate-900/90 text-slate-300 text-[10px] md:text-xs px-3 py-1 rounded-full shadow-md flex items-center gap-1 z-30 border border-slate-700">
               <User size={12} /> 自家
+              {/* 🌟 移至此處的計時器 */}
+              {state.currentTurn === 0 &&
+                state.config.timeLimit > 0 &&
+                !state.actionMenu && (
+                  <div
+                    className={`ml-2 px-2 py-0.5 rounded font-mono font-black text-sm border-l border-slate-700 ${
+                      state.timeLeft <= 5
+                        ? "text-red-500 animate-pulse"
+                        : "text-yellow-400"
+                    }`}
+                  >
+                    ⏱ {state.timeLeft}s
+                  </div>
+                )}
               {state.currentTurn === 0 &&
                 !state.actionMenu &&
                 state.gameState !== "finished" && (
