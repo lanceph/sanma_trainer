@@ -332,13 +332,11 @@ const Tile = React.memo(
     faceDown = false,
     rotated = false,
   }) => {
-    // 1. 將尺寸與邊框分離：確保外層容器佔位與感應區塊不會跟著變動
     const outerSizeClasses = small
-      ? "w-8 h-11 md:w-10 md:h-14"
-      : "w-10 h-14 md:w-12 md:h-16";
+      ? "w-8 h-11 md:w-10 md:h-14 flex-shrink-0"
+      : "w-10 h-14 md:w-12 md:h-16 flex-shrink-0";
 
     const innerBorderClasses = small ? "border-b-[3px]" : "border-b-[4px]";
-
     const rotateClass = rotated ? "transform -rotate-90 origin-center" : "";
 
     if (faceDown) {
@@ -373,7 +371,6 @@ const Tile = React.memo(
 
     const isInteractive = !small && !isRiver && !!onClick;
 
-    // 處理已選中(準備出牌/看提示)的狀態
     if (isSelected && !small && !isRiver) {
       borderClass =
         "border-yellow-400 border-b-yellow-500 ring-2 ring-yellow-400";
@@ -381,35 +378,31 @@ const Tile = React.memo(
     }
 
     return (
-      // 🌟 外層容器 (Outer Box)：完全靜態，專門負責穩定 Hitbox 與觸發事件
       <div
         className={`relative group ${outerSizeClasses} ${rotateClass} ${
-          isRiver ? "z-0" : ""
+          isRiver ? "z-0" : "hover:z-50"
         } ${className}`}
         onClick={() => !isRiver && onClick && onClick(tile)}
         onMouseEnter={onMouseEnter}
         onMouseLeave={onMouseLeave}
         style={isInteractive ? { cursor: "pointer" } : {}}
       >
-        {/* 🌟 中層位移容器 (Middle Wrapper)：跟隨狀態做平滑上下移動，不再縮放 */}
         <div
           className={`
             absolute inset-0 transition-transform duration-200 ease-out
             ${isSelected && !small && !isRiver ? "-translate-y-4" : ""}
             ${isInteractive && !isSelected ? "group-hover:-translate-y-2" : ""}
-            ${highlight ? "z-10" : "z-0"}
+            ${highlight ? "z-10 scale-105" : "z-0"}
           `
             .replace(/\s+/g, " ")
             .trim()}
         >
-          {/* 摸牌標記 (放入位移層，確保它會跟著牌一起平滑浮起) */}
           {isJustDrawn && !small && !isRiver && (
             <div className="absolute -top-3 -right-2 bg-blue-500 text-white text-[9px] md:text-[11px] px-1.5 py-0.5 rounded shadow-md z-30 font-black border border-blue-300 animate-bounce">
               摸
             </div>
           )}
 
-          {/* 🌟 內層視覺容器 (Inner Visuals)：處理背景、邊框、圓角與陰影 */}
           <div
             className={`
               w-full h-full flex items-center justify-center ${innerBorderClasses} ${bgClass} rounded
@@ -417,15 +410,20 @@ const Tile = React.memo(
               transition-shadow duration-200 ease-out
               ${
                 isInteractive && !isSelected
-                  ? "group-hover:shadow-[0_8px_12px_rgba(0,0,0,0.25)]"
+                  ? "group-hover:shadow-[0_8px_15px_rgba(0,0,0,0.3)]"
                   : ""
               }
               ${isDiscard ? "opacity-50 grayscale" : ""}
-              ${highlight ? "ring-2 ring-green-500 bg-green-50" : ""}
+              ${
+                highlight
+                  ? "ring-2 ring-green-500 bg-green-50 shadow-[0_0_12px_rgba(34,197,94,0.5)]"
+                  : ""
+              }
             `
               .replace(/\s+/g, " ")
               .trim()}
           >
+            {/* 🌟 核心修正：將花樣圖案渲染邏輯重新放回視覺容器內部 */}
             {isDora && !faceDown && (
               <div className="absolute top-1 right-1 w-1.5 h-1.5 md:w-2 md:h-2 bg-yellow-400 rounded-full shadow-sm border-[0.5px] border-white z-0"></div>
             )}

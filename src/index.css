@@ -6,3 +6,32 @@
   -ms-overflow-style: none; /* IE and Edge */
   scrollbar-width: none; /* Firefox */
 }
+
+/* 🌟 Phase 2 改良版：單張牌的重擊落桌特效 (Tile Slam) */
+@keyframes tile-slam {
+  0% {
+    transform: scale(1.5) translateY(-20px);
+    opacity: 0;
+    filter: brightness(2); /* 擊發瞬間高亮 */
+    z-index: 100;
+  }
+  30% {
+    transform: scale(0.9) translateY(2px);
+    opacity: 1;
+    filter: brightness(1);
+    box-shadow: 0 0 15px rgba(255, 255, 255, 0.4); /* 落地震波感 */
+  }
+  60% {
+    transform: scale(1.1) translateY(-1px);
+  }
+  100% {
+    transform: scale(1) translateY(0);
+    z-index: 20;
+  }
+}
+
+.animate-tile-slam {
+  /* 使用具有強烈回彈感的貝茲曲線 */
+  animation: tile-slam 0.18s cubic-bezier(0.18, 0.89, 0.32, 1.28) both;
+  pointer-events: none;
+}

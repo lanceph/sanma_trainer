@@ -270,9 +270,10 @@ export const SimulationMode = ({ tournamentConfig }) => {
         <SimFinishedView state={state} actions={actions} />
       )}
 
-      <div className="bg-emerald-800 p-4 rounded-xl shadow-inner relative min-h-[500px] flex flex-col justify-between overflow-hidden">
+      <div className="bg-emerald-800 p-4 rounded-xl shadow-inner relative min-h-[500px] flex flex-col justify-between">
         {/* Opponents Area */}
-        <div className="w-full overflow-x-auto scrollbar-hide">
+        {/* 修正後：將 overflow-x-auto 改為 visible，確保動畫能超出容器邊界 */}
+        <div className="w-full overflow-visible">
           <div className="flex justify-between items-start min-w-[550px] md:min-w-full pb-2">
             {/* 上家 AI 區域 */}
             <div
@@ -338,9 +339,12 @@ export const SimulationMode = ({ tournamentConfig }) => {
                   );
                 })}
               </div>
-              <div className="grid grid-cols-6 gap-0.5 md:gap-1 mt-2 w-max">
+              <div className="grid grid-cols-6 gap-0.5 md:gap-1 mt-2 w-max relative overflow-visible">
                 {state.rivers[2].map((t, i) => {
                   const isMatched = hoveredTileType === t;
+                  const isJustDiscarded =
+                    state.shakingPlayer === 2 &&
+                    i === state.rivers[2].length - 1;
                   return (
                     <Tile
                       key={`r2-${i}`}
@@ -349,6 +353,10 @@ export const SimulationMode = ({ tournamentConfig }) => {
                       isRiver={true}
                       isDora={checkDora(t)}
                       className={`!w-6 !h-9 md:!w-7 md:!h-10 !border-b-2 transition-all duration-300 ${
+                        isJustDiscarded
+                          ? "animate-tile-slam !z-50 !opacity-100"
+                          : "z-0"
+                      } ${
                         isMatched
                           ? "ring-2 ring-yellow-400 scale-110 shadow-[0_0_10px_rgba(250,204,21,0.6)] !opacity-100 relative z-10"
                           : "opacity-80"
@@ -425,19 +433,24 @@ export const SimulationMode = ({ tournamentConfig }) => {
                 })}
               </div>
               <div
-                className="grid grid-cols-6 gap-0.5 md:gap-1 mt-2 w-max"
+                className="grid grid-cols-6 gap-0.5 md:gap-1 mt-2 w-max relative overflow-visible"
                 dir="ltr"
               >
                 {state.rivers[1].map((t, i) => {
                   const isMatched = hoveredTileType === t;
+                  const isJustDiscarded =
+                    state.shakingPlayer === 1 &&
+                    i === state.rivers[1].length - 1;
                   return (
                     <Tile
                       key={`r1-${i}`}
                       tile={t}
-                      small={true}
-                      isRiver={true}
-                      isDora={checkDora(t)}
+                      // ... 其他屬性
                       className={`!w-6 !h-9 md:!w-7 md:!h-10 !border-b-2 transition-all duration-300 ${
+                        isJustDiscarded
+                          ? "animate-tile-slam !z-50 !opacity-100"
+                          : "z-0"
+                      } ${
                         isMatched
                           ? "ring-2 ring-yellow-400 scale-110 shadow-[0_0_10px_rgba(250,204,21,0.6)] !opacity-100 relative z-10"
                           : "opacity-80"
@@ -459,6 +472,9 @@ export const SimulationMode = ({ tournamentConfig }) => {
           <div className="grid grid-cols-6 gap-0.5 md:gap-1 w-max">
             {state.rivers[0].map((t, i) => {
               const isMatched = hoveredTileType === t;
+              // 🌟 判斷這張牌是不是剛打出來的最後一張
+              const isJustDiscarded =
+                state.shakingPlayer === 0 && i === state.rivers[0].length - 1;
               return (
                 <Tile
                   key={`r0-${i}`}
@@ -467,6 +483,10 @@ export const SimulationMode = ({ tournamentConfig }) => {
                   isRiver={true}
                   isDora={checkDora(t)}
                   className={`!w-7 !h-10 md:!w-8 !h-11 transition-all duration-300 ${
+                    isJustDiscarded
+                      ? "animate-tile-slam !z-50 !opacity-100"
+                      : "z-0"
+                  } ${
                     isMatched
                       ? "ring-2 ring-yellow-400 scale-110 shadow-[0_0_10px_rgba(250,204,21,0.6)] relative z-10 !opacity-100"
                       : "opacity-90"
@@ -708,12 +728,8 @@ export const SimulationMode = ({ tournamentConfig }) => {
                         !state.isRiichi[0] &&
                         actions.setSelectedTileIndex(i)
                       }
-                      // 🌟 新增：手牌本身的微幅放大與光暈效果
-                      className={`transition-all duration-300 ${
-                        isHoverMatched
-                          ? "scale-110 -translate-y-2 ring-2 ring-emerald-400 shadow-[0_5px_15px_rgba(52,211,153,0.5)] relative z-10"
-                          : ""
-                      }`}
+                      // 🌟 修正：移除這裡的 scale-110 與 -translate-y-2，這部分已經寫在 Tile.jsx 內部了
+                      className="transition-all duration-300"
                     />
                   </div>
                 );

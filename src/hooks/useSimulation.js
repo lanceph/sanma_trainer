@@ -78,7 +78,12 @@ export const useSimulation = () => {
   const [tacticalInfo, setTacticalInfo] = useState(null);
   const [lastDrawnTile, setLastDrawnTile] = useState(null);
   const [currentWaits, setCurrentWaits] = useState([]); // 🌟 新增：用來記錄現在正在聽哪些牌
-
+  // 🌟 Phase 2 改良版：記錄「哪一家」剛出牌
+  const [shakingPlayer, setShakingPlayer] = useState(null);
+  const triggerShake = useCallback((playerIdx) => {
+    setShakingPlayer(playerIdx);
+    setTimeout(() => setShakingPlayer(null), 200); // 配合動畫時間 0.2s
+  }, []);
   const startGame = useCallback(() => {
     // 這裡傳入 config.seed
     const fullDeck = MahjongEngine.generateRandomDeck(config.seed);
@@ -328,6 +333,7 @@ export const useSimulation = () => {
 
   const discardTile = (playerIdx, tileIndex) => {
     playDiscard(); // 🌟 播放打牌音效
+    triggerShake(playerIdx); // 🌟 傳入剛出牌的玩家位置
 
     if (playerIdx === 0) setLastDrawnTile(null);
 
@@ -1036,6 +1042,7 @@ export const useSimulation = () => {
       tacticalInfo,
       lastDrawnTile,
       currentWaits,
+      shakingPlayer, // 🌟 Phase 2 新增：匯出震動狀態
     },
     actions: {
       setConfig,
