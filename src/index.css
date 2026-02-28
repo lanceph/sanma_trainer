@@ -35,3 +35,99 @@
   animation: tile-slam 0.18s cubic-bezier(0.18, 0.89, 0.32, 1.28) both;
   pointer-events: none;
 }
+
+/* 🌟 Phase 1: 畫面劫持特效 (Screen Takeovers) */
+@keyframes overlay-fade-in {
+  from {
+    opacity: 0;
+    backdrop-filter: blur(0px);
+  }
+  to {
+    opacity: 1;
+    backdrop-filter: blur(6px);
+  }
+}
+
+/* 立直特效使用 */
+@keyframes text-slam {
+  0% {
+    transform: scale(4) rotate(-10deg);
+    opacity: 0;
+    text-shadow: 0 0 50px rgba(255, 255, 255, 1);
+  }
+  15% {
+    transform: scale(0.9) rotate(5deg);
+    opacity: 1;
+    text-shadow: 0 0 20px rgba(255, 255, 255, 0.8);
+  }
+  30% {
+    transform: scale(1.05) rotate(-2deg);
+  }
+  45% {
+    transform: scale(1) rotate(0deg);
+  }
+  80% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1) translateY(-30px);
+    filter: blur(5px);
+  }
+}
+
+.animate-cut-in-text {
+  /* 🌟 時間縮短為 1s，節奏更緊湊 */
+  animation: text-slam 1s cubic-bezier(0.18, 0.89, 0.32, 1.28) forwards;
+}
+
+.animate-lightning {
+  /* 閃電特效也稍微縮短配合整體節奏 */
+  animation: lightning-flash 0.4s ease-out forwards;
+}
+
+/* 🌟 Phase 3: 結算印章重擊與震動特效 */
+@keyframes stamp-slam {
+  0% {
+    transform: scale(4) rotate(-20deg);
+    opacity: 0;
+  }
+  50% {
+    /* 蓋下去的瞬間過衝到 -50度 */
+    transform: scale(0.8) rotate(-50deg);
+    opacity: 1;
+  }
+  100% {
+    /* 最終定格在完美的 -45度角 */
+    transform: scale(1) rotate(-45deg);
+    opacity: 1;
+  }
+}
+
+@keyframes shake-screen {
+  0%,
+  100% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+  20% {
+    transform: translate(-4px, 4px) rotate(-1deg);
+  }
+  40% {
+    transform: translate(4px, -4px) rotate(1deg);
+  }
+  60% {
+    transform: translate(-4px, -4px) rotate(-1deg);
+  }
+  80% {
+    transform: translate(4px, 4px) rotate(1deg);
+  }
+}
+
+.animate-stamp {
+  animation: stamp-slam 0.4s cubic-bezier(0.18, 0.89, 0.32, 1.28) forwards;
+}
+
+.animate-shake {
+  animation: shake-screen 0.3s ease-out;
+}

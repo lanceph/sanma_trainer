@@ -514,6 +514,13 @@ export const useSimulation = () => {
       : [activeCtx.doraInd];
     scoreData.uraIndicators = riichiStat ? activeCtx.uraDoraInd : [];
 
+    // 👇====== 新增：把手牌資訊也帶給結算畫面 ======👇
+    scoreData.hand = hand;
+    scoreData.melds = melds;
+    scoreData.kitas = playerKitas;
+    scoreData.winTile = winTile;
+    // 👆===========================================👆
+
     // 🌟 修正 4：結算前統一幫所有人的手牌排序，讓 UI 顯示整齊
     setHands((prev) => prev.map((h) => MahjongEngine.sortHand(h)));
 
@@ -574,6 +581,14 @@ export const useSimulation = () => {
       // 🌟 將指示牌結果綁定到 scoreData，讓 UI 知道怎麼畫寶牌圖示
       scoreData.doraIndicators = currentDoraInd;
       scoreData.uraIndicators = currentUraInd;
+
+      // 👇====== 新增：把手牌資訊也帶給結算畫面 ======👇
+      // 注意：雙響時 currentHands[idx] 尚未包含放銃那張牌，所以我們自己把它合起來
+      scoreData.hand = [...currentHands[idx], winTile];
+      scoreData.melds = openMelds[idx];
+      scoreData.kitas = kitas[idx];
+      scoreData.winTile = winTile;
+      // 👆===========================================👆
 
       doubleScoreResults.push({ playerIdx: idx, scoreData });
 
