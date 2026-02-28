@@ -190,8 +190,8 @@ export const MahjongEngine = {
       if (t === "5p" || t === "5s") {
         deck.push(t);
         deck.push(t);
+        deck.push(t);
         const redT = `0${t[1]}`;
-        deck.push(redT);
         deck.push(redT);
       } else {
         for (let i = 0; i < 4; i++) deck.push(t);
