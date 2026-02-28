@@ -11,7 +11,8 @@ export const CentralCompass = ({ state, checkDora }) => {
     // 🌟 修正：位置上提至 top-[20%]，並全面縮小寬高 (w-36 md:w-44) 與邊框厚度
     <div className="absolute top-[20%] left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-36 h-36 md:w-44 md:h-44 rounded-full bg-slate-900/85 border-[4px] border-slate-700/80 shadow-[0_0_30px_rgba(0,0,0,0.6),inset_0_0_15px_rgba(0,0,0,0.8)] z-0 flex flex-col items-center justify-center backdrop-blur-md pointer-events-none transition-all duration-300">
       {/* 局數與場風 */}
-      <div className="text-emerald-400 font-black text-base md:text-lg tracking-widest drop-shadow-[0_0_5px_rgba(16,185,129,0.8)]">
+      {/* 🌟 修正：加大字體、增加動態陰影與字母間距 */}
+      <div className="text-emerald-400 font-black text-xl md:text-2xl tracking-[0.2em] drop-shadow-[0_0_8px_rgba(16,185,129,0.9)] animate-pulse">
         {TILE_LABELS[state.context.pWind]}風場
       </div>
 

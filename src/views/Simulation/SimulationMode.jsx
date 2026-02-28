@@ -265,8 +265,11 @@ export const SimulationMode = ({ tournamentConfig }) => {
               }`}
             >
               <div className="text-white text-xs font-bold mb-1 flex items-center gap-2">
-                <Cpu size={12} />
-                上家 ({TILE_LABELS[state.context.ai2Wind]})
+                {/* 🌟 修正：改為獨立、顯眼的風位勳章 */}
+                <span className="bg-red-600 text-white px-2 py-0.5 rounded shadow-sm text-[11px] font-black border border-red-400">
+                  {TILE_LABELS[state.context.ai2Wind]}
+                </span>
+                <span className="opacity-90">上家 AI</span>
                 {state.isRiichi[2] && (
                   <span className="bg-red-600 text-white text-[10px] px-2 py-0.5 rounded shadow-sm animate-pulse">
                     立直
@@ -350,7 +353,11 @@ export const SimulationMode = ({ tournamentConfig }) => {
                     立直
                   </span>
                 )}
-                下家 ({TILE_LABELS[state.context.ai1Wind]})<Cpu size={12} />
+                <span className="opacity-90">下家 AI</span>
+                {/* 🌟 修正：改為獨立、顯眼的風位勳章 */}
+                <span className="bg-blue-600 text-white px-2 py-0.5 rounded shadow-sm text-[11px] font-black border border-blue-400">
+                  {TILE_LABELS[state.context.ai1Wind]}
+                </span>
               </div>
               <div className="flex gap-0.5 mb-1 justify-end">
                 {renderMelds(1)}
