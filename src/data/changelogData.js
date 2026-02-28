@@ -80,7 +80,7 @@ export const CHANGELOG_DATA = [
       "競技模式 UI 適配：在錦標賽中自動隱藏戰術雷達、危險度標籤與上帝視角提示，確保公平競技 (Enhance)",
       "新增牌桌「聽牌 / 立直」常駐提示框，直接於手牌上方視覺化顯示目前聽牌牌種 (Feature)",
       "實裝三麻流局罰符 (No-ten Bappu) 結算、一砲雙響 (Double Ron) 獨立扣分與專屬雙卡片結算畫面 (Gameplay)",
-      "實裝開槓翻新寶牌，以及立直和牌翻開「裏寶牌 (Ura Dora)」機制，完美還原日麻算番 (Gameplay)",
+      "實裝開槓番新寶牌，以及立直和牌番開「裏寶牌 (Ura Dora)」機制，完美還原日麻算番 (Gameplay)",
       "修復立直與超時自動摸切時，因 AI 錯誤理牌導致丟錯牌，並引發聽牌提示異常消失的嚴重問題 (Bugfix)",
       "修復 TournamentManager 中 React Hooks 條件渲染順序違規的報錯問題 (Bugfix)",
     ],

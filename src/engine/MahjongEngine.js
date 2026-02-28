@@ -322,7 +322,7 @@ export const MahjongEngine = {
     logicSteps.push(
       `🔍 己方狀態：${
         isTenpaiInfo.isTenpai ? "已聽牌" : "未聽牌"
-      }，潛在打點預估 ${estHan} 翻。`
+      }，潛在打點預估 ${estHan} 番。`
     );
     if (threatDetails.length > 0) {
       const threatDesc = threatDetails
@@ -343,7 +343,7 @@ export const MahjongEngine = {
         stance = "attack";
         label = "🔥 強勢對攻";
         color = "red-500";
-        desc = `敵方立直！但我方已聽牌且打點足夠 (${estHan}翻+)，局收支為正，建議硬拼對攻！`;
+        desc = `敵方立直！但我方已聽牌且打點足夠 (${estHan}番+)，局收支為正，建議硬拼對攻！`;
         logicSteps.push(
           `💡 決策理論：《數據制勝》指出，聽牌且具備滿貫級別打點時，與先制立直對攻的局收支期望值為正。`
         );
@@ -351,7 +351,7 @@ export const MahjongEngine = {
         stance = "caution";
         label = "⚠️ 條件對攻";
         color = "yellow-500";
-        desc = `敵方立直。我方雖聽牌但打點偏低 (預估 ${estHan} 翻)，請視巡目與危險牌決定是否硬拼。`;
+        desc = `敵方立直。我方雖聽牌但打點偏低 (預估 ${estHan} 番)，請視巡目與危險牌決定是否硬拼。`;
         logicSteps.push(
           `💡 決策理論：我方雖聽牌但打點不足，硬拼風險偏高。若摸入生張或無筋危險牌，應隨時準備轉為防守。`
         );
@@ -1266,7 +1266,7 @@ export const MahjongEngine = {
         if (b > 2000) {
           b = 2000;
           sStr = "滿貫 (Mangan)";
-        } else sStr = `${han} 翻 ${fu} 符`;
+        } else sStr = `${han} 番 ${fu} 符`;
       }
     }
     let tS = 0;

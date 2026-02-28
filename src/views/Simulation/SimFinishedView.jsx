@@ -321,7 +321,7 @@ export const SimFinishedView = ({ state, actions }) => {
                   </span>
                   {isStampVisible && (
                     <span className="text-slate-400 font-mono animate-in fade-in zoom-in duration-300">
-                      {scoreResult.han} 翻 {scoreResult.fu} 符
+                      {scoreResult.han} 番 {scoreResult.fu} 符
                     </span>
                   )}
                 </div>
@@ -337,7 +337,7 @@ export const SimFinishedView = ({ state, actions }) => {
                     >
                       <span className="text-slate-300 font-bold">{y.name}</span>
                       <span className="text-yellow-500 font-bold">
-                        {y.han} 翻
+                        {y.han} 番
                       </span>
                     </div>
                   ))}
@@ -377,7 +377,7 @@ export const SimFinishedView = ({ state, actions }) => {
                           }`}
                         >
                           <span>{y.name}</span>
-                          <span className="text-yellow-500">{y.han}翻</span>
+                          <span className="text-yellow-500">{y.han}番</span>
                         </div>
                       ))}
                     </div>

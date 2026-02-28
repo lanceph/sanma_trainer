@@ -32,7 +32,6 @@ export const AudioContext = React.createContext({
   sfxVolume: 0.35,
 });
 
-// 🌟 修改：加入 onOpenChangelog，將更新歷程移至頂部狀態列
 const AppHeader = ({
   activeTab,
   onGoHome,
@@ -42,7 +41,8 @@ const AppHeader = ({
   onOpenChangelog,
 }) => (
   <header className="bg-slate-900/95 backdrop-blur-md text-white p-4 shadow-xl z-50 shrink-0 relative border-b border-slate-700/80">
-    <div className="max-w-[1400px] mx-auto flex justify-between items-center">
+    {/* 🌟 讓頂部導覽列也支援超寬螢幕滿版，僅保留安全的水平 padding */}
+    <div className="w-full px-2 md:px-8 mx-auto flex justify-between items-center">
       <div className="flex items-center gap-3 md:gap-4">
         {activeTab !== "home" && (
           <button
@@ -69,18 +69,17 @@ const AppHeader = ({
               三麻進階訓練場
             </span>
             <span className="text-[10px] md:text-xs text-emerald-400 font-bold md:ml-2 tracking-widest hidden sm:inline-block">
-              PRO EDITION
+              by ZoneSky(阿宏)
             </span>
           </div>
         </h1>
       </div>
 
       <div className="flex items-center gap-2 md:gap-4">
-        <div className="text-xs md:text-sm text-slate-400 hidden md:block font-medium">
+        <div className="text-xs md:text-sm text-slate-400 hidden lg:block font-medium">
           基於《數據制勝》與《79博客》理論
         </div>
 
-        {/* 🌟 新增：更新歷程 (Changelog) 按鈕 */}
         <button
           onClick={onOpenChangelog}
           className="p-2 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors shadow-inner"
@@ -173,9 +172,6 @@ const AudioSettingsModal = ({
   );
 };
 
-// =========================================================================
-// 🌟 史詩級重構：沉浸式遊戲大廳 (Immersive Game Lobby)
-// =========================================================================
 const GameLobby = ({ onSelectMode }) => {
   const mainModes = [
     {
@@ -217,7 +213,6 @@ const GameLobby = ({ onSelectMode }) => {
 
   return (
     <div className="absolute inset-0 w-full h-full flex flex-col overflow-hidden animate-in fade-in duration-700 bg-slate-950">
-      {/* 🌟 沉浸式背景圖與漸層遮罩 (Left to Right Gradient) */}
       <div
         className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-40 scale-105"
         style={{
@@ -225,17 +220,13 @@ const GameLobby = ({ onSelectMode }) => {
             "url('https://images.unsplash.com/photo-1611996575749-79a3a250f948?q=80&w=2070&auto=format&fit=crop')",
         }}
       ></div>
-      {/* 讓左側保持黑暗以凸顯標題，右側稍微透出背景 */}
       <div className="absolute inset-0 bg-gradient-to-r from-slate-950 via-slate-900/80 to-transparent"></div>
-      {/* 底部加上漸層，讓左下的輔助按鈕清晰可見 */}
       <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-slate-950 to-transparent"></div>
 
-      <div className="relative z-10 w-full h-full flex flex-col md:flex-row p-6 md:p-12 lg:p-16 max-w-[1600px] mx-auto">
-        {/* ================= 左側：標題區與底部輔助功能 ================= */}
+      <div className="relative z-10 w-full h-full flex flex-col md:flex-row p-6 md:p-12 lg:p-16 w-full mx-auto">
         <div className="flex flex-col justify-between w-full md:w-1/2 h-full pb-8">
-          {/* 大廳歡迎標題 */}
           <div className="mt-4 md:mt-12 space-y-2 animate-in slide-in-from-left-8 duration-700">
-            <h2 className="text-5xl md:text-7xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white to-slate-400 tracking-tight drop-shadow-2xl">
+            <h2 className="text-5xl md:text-7xl lg:text-8xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white to-slate-400 tracking-tight drop-shadow-2xl">
               CHOOSE YOUR <br />
               BATTLEFIELD.
             </h2>
@@ -245,7 +236,6 @@ const GameLobby = ({ onSelectMode }) => {
             </p>
           </div>
 
-          {/* 左下方：戰術學院與百科 (Glassmorphism 小卡) */}
           <div className="mt-auto flex flex-col sm:flex-row gap-4 animate-in slide-in-from-bottom-8 duration-700 delay-200">
             {subModes.map((mode) => (
               <button
@@ -269,7 +259,6 @@ const GameLobby = ({ onSelectMode }) => {
           </div>
         </div>
 
-        {/* ================= 右側：大型主遊戲模式選單 ================= */}
         <div className="w-full md:w-1/2 flex flex-col justify-center gap-6 mt-12 md:mt-0 md:pl-12 lg:pl-24 animate-in slide-in-from-right-8 duration-700 delay-100">
           {mainModes.map((mode) => (
             <button
@@ -277,12 +266,10 @@ const GameLobby = ({ onSelectMode }) => {
               onClick={() => onSelectMode(mode.id)}
               className={`group relative overflow-hidden rounded-3xl p-6 md:p-8 lg:p-10 text-left transition-all duration-300 hover:scale-[1.02] bg-gradient-to-br ${mode.color} border-2 ${mode.border} ${mode.glow} shadow-2xl flex items-center justify-between`}
             >
-              {/* 背景斜紋裝飾與 Icon 水印 */}
               <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMiIgY3k9IjIiIHI9IjIiIGZpbGw9IiNmZmZmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSIvPjwvc3ZnPg==')] opacity-30 mix-blend-overlay"></div>
               <div className="absolute right-0 top-1/2 -translate-y-1/2 -mr-8 text-white/10 transition-transform duration-700 group-hover:scale-125 group-hover:-rotate-12">
                 <mode.icon size={180} />
               </div>
-
               <div className="relative z-10 w-4/5">
                 <p className="text-white/70 font-black tracking-[0.2em] text-xs md:text-sm mb-1">
                   {mode.subLabel}
@@ -294,9 +281,7 @@ const GameLobby = ({ onSelectMode }) => {
                   {mode.desc}
                 </p>
               </div>
-
-              {/* 右側箭頭指示 */}
-              <div className="relative z-10 w-12 h-12 rounded-full bg-white/10 flex items-center justify-center border border-white/20 group-hover:bg-white group-hover:text-slate-900 transition-all duration-300">
+              <div className="relative z-10 w-12 h-12 rounded-full bg-white/10 flex items-center justify-center border border-white/20 group-hover:bg-white group-hover:text-slate-900 transition-all duration-300 shrink-0">
                 <ChevronRight
                   size={24}
                   className="transform group-hover:translate-x-1 transition-transform"
@@ -422,7 +407,6 @@ export default function App() {
 
   return (
     <div className="h-screen w-screen font-sans text-slate-900 flex flex-col overflow-hidden relative bg-slate-950">
-      {/* 🌟 傳入 onOpenChangelog */}
       <AppHeader
         activeTab={activeTab}
         onGoHome={() => handleTabSwitch("home")}
@@ -444,7 +428,6 @@ export default function App() {
       <AudioContext.Provider
         value={{ isMuted, setIsRiichiBgmActive, sfxVolume }}
       >
-        {/* 🌟 根據是否在首頁，切換外層容器的樣式 */}
         <main
           className={`flex-1 overflow-y-auto w-full touch-pan-y relative ${
             activeTab === "home"
@@ -452,16 +435,25 @@ export default function App() {
               : "bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-100 via-slate-200 to-slate-300"
           }`}
         >
-          {activeTab === "home" ? (
-            // 🌟 首頁：全螢幕滿版
-            <GameLobby onSelectMode={handleTabSwitch} />
-          ) : (
-            // 🌟 其他頁面：維持原本的置中與最大寬度限制
-            <div className="max-w-[1400px] mx-auto px-2 md:px-4 py-6 pb-24 h-full">
+          {/* 🌟 核心修改：針對「遊戲對戰模式」與「靜態閱讀模式」採取不同的排版策略 */}
+
+          {activeTab === "home" && <GameLobby onSelectMode={handleTabSwitch} />}
+
+          {/* 🎯 遊戲對戰模式 (全滿版 Full-Bleed)：解除 max-w 限制，讓綠色牌桌能徹底延伸 */}
+          {(activeTab === "simulation" || activeTab === "tournamentLobby") && (
+            <div className="w-full h-full p-2 md:p-4 pb-24 md:pb-4 animate-in fade-in">
               {activeTab === "simulation" && <SimulationMode />}
               {activeTab === "tournamentLobby" && (
                 <TournamentManager onContextUpdate={setTournamentContext} />
               )}
+            </div>
+          )}
+
+          {/* 📚 靜態閱讀模式：保留 max-w-[1400px]，確保文字可讀性不會因為螢幕過大而失焦 */}
+          {(activeTab === "tactics" ||
+            activeTab === "terminology" ||
+            activeTab === "changelog") && (
+            <div className="max-w-[1400px] mx-auto px-4 py-8 pb-24 h-full animate-in fade-in">
               {activeTab === "tactics" && <AttackDefenseTactics />}
               {activeTab === "terminology" && <TerminologyGlossary />}
               {activeTab === "changelog" && <ChangelogView />}
