@@ -1,82 +1,33 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import { Cpu, User, Zap, Eye } from "lucide-react";
 import useSound from "use-sound";
-import { AudioContext } from "../../App"; // 取得靜音狀態
+import { AudioContext } from "../../App";
 import tickSound from "../../assets/sounds/tick.mp3";
 import Tile from "../../components/Tile";
 import TacticalAdvisor from "../../components/TacticalAdvisor";
+// 🌟 1. 確保成功引入羅盤組件
+import { CentralCompass } from "../../components/CentralCompass";
 import { useSimulation } from "../../hooks/useSimulation";
 import { SimSetupView } from "./SimSetupView";
 import { SimFinishedView } from "./SimFinishedView";
 import { SimActionMenu } from "./SimActionMenu";
 import { MahjongEngine } from "../../engine/MahjongEngine";
 import { TILE_LABELS, getTileName } from "../../constants/mahjong";
-import { CutInEffect } from "../../components/CutInEffect"; // 🌟 引入特效系統
-import { CentralCompass } from "../../components/CentralCompass";
 
 export const SimulationMode = ({ tournamentConfig }) => {
   const { state, actions } = useSimulation();
-
-  // 🌟 Phase 1 新增：紀錄目前要播放哪種 Cut-in 特效
-  const [cutInEvent, setCutInEvent] = useState(null);
-
-  // 🌟 Phase 1 新增：用 Ref 追蹤前一次的狀態，用來偵測「瞬間變化」
-  const prevRiichiState = useRef(state.isRiichi || [false, false, false]);
-  const prevGameState = useRef(state.gameState);
-
-  // 🌟 新增：狀態管理，用來記錄目前滑鼠滑過的手牌牌型 (例如 '1m', '5p')
   const [hoveredTileType, setHoveredTileType] = useState(null);
 
-  // 🌟 新增：判斷目前是否在錦標賽模式中
   const isTournament =
     !!tournamentConfig || !!state.config.tournamentConfig?.tid;
 
-  // 🌟 1. 取得全域 AudioContext，並拿出 sfxVolume
   const { setIsRiichiBgmActive, isMuted, sfxVolume } =
     React.useContext(AudioContext);
-  // 🌟 把 volume 綁定為 sfxVolume
   const [playTick, { stop: stopTick }] = useSound(tickSound, {
     volume: sfxVolume,
     soundEnabled: !isMuted,
   });
 
-  // 1. 監聽立直觸發
-  useEffect(() => {
-    if (!state.isRiichi) return;
-
-    state.isRiichi.forEach((isRiichi, idx) => {
-      // 偵測到某一家從「未立直」變成「立直」
-      if (isRiichi && !prevRiichiState.current[idx]) {
-        setCutInEvent({
-          type: "riichi",
-          text: "立直",
-          color: idx === 0 ? "text-red-500" : "text-orange-400",
-        });
-      }
-    });
-    prevRiichiState.current = [...state.isRiichi];
-  }, [state.isRiichi]);
-
-  // 2. 監聽和牌(榮和/自摸)觸發
-  useEffect(() => {
-    if (
-      state.gameState === "finished" &&
-      prevGameState.current !== "finished"
-    ) {
-      // 排除流局，只有在有和牌結果時才觸發
-      if (state.result && state.result.type !== "draw") {
-        const isTsumo = state.result.type === "tsumo";
-        setCutInEvent({
-          type: "win",
-          text: isTsumo ? "自摸" : "榮和",
-          color: "text-yellow-400",
-        });
-      }
-    }
-    prevGameState.current = state.gameState;
-  }, [state.gameState, state.result]);
-
-  // 🌟 實作倒數警告音效
   React.useEffect(() => {
     if (
       state.currentTurn === 0 &&
@@ -98,18 +49,15 @@ export const SimulationMode = ({ tournamentConfig }) => {
     playTick,
   ]);
 
-  // 🌟 新增：當玩家打出牌(換人)、立直、出現選單或遊戲結束時，立刻停止倒數音效
   React.useEffect(() => {
     if (
-      state.currentTurn !== 0 || // 已經不是我的回合了
-      state.isRiichi[0] || // 我已經立直了（會自動摸切，不該有倒數聲）
-      state.actionMenu || // 畫面上跳出吃碰槓選單了
-      state.gameState !== "playing" // 遊戲已經結束了
+      state.currentTurn !== 0 ||
+      state.isRiichi[0] ||
+      state.actionMenu ||
+      state.gameState !== "playing"
     ) {
       stopTick();
     }
-
-    // 離開頁面時也確保聲音被關掉
     return () => stopTick();
   }, [
     state.currentTurn,
@@ -119,40 +67,30 @@ export const SimulationMode = ({ tournamentConfig }) => {
     stopTick,
   ]);
 
-  // 🌟 修正版：監控立直狀態，切換專屬 BGM (不包含 unmount 清理)
   React.useEffect(() => {
     if (setIsRiichiBgmActive) {
-      // 只要三家裡面有任何一家立直了
       const hasAnyRiichi = state.isRiichi.some((r) => r);
-      // 且目前局數還在進行中 (如果有人和牌或流局，gameState 會變成 "finished")
       const isStillPlaying = state.gameState === "playing";
-
       setIsRiichiBgmActive(hasAnyRiichi && isStillPlaying);
     }
   }, [state.isRiichi, state.gameState, setIsRiichiBgmActive]);
 
-  // 🌟 獨立的清理 Effect：只有在「真正離開對局模擬頁面」時才觸發關閉
   React.useEffect(() => {
     return () => {
       if (setIsRiichiBgmActive) setIsRiichiBgmActive(false);
     };
   }, [setIsRiichiBgmActive]);
 
-  // 🌟 新增：自動同步錦標賽設定，並自動開始遊戲
   useEffect(() => {
-    // 只有在初始設定畫面 (setup) 且有錦標賽參數時才執行
     if (tournamentConfig && state.gameState === "setup") {
-      // 1. 如果設定裡的 Seed 跟錦標賽目前的 Seed 不一樣，先更新設定
       if (state.config.seed !== tournamentConfig.seed) {
         actions.setConfig((prev) => ({
           ...prev,
           seed: tournamentConfig.seed,
           tournamentConfig: tournamentConfig,
-          timeLimit: 15, // 強制鎖定思考時間 15 秒
+          timeLimit: 15,
         }));
-      }
-      // 2. 確定 Seed 已經更新進 config 後，立刻自動開始遊戲！
-      else if (state.config.seed === tournamentConfig.seed) {
+      } else if (state.config.seed === tournamentConfig.seed) {
         actions.startGame();
       }
     }
@@ -168,7 +106,6 @@ export const SimulationMode = ({ tournamentConfig }) => {
       ? "!w-6 !h-9 md:!w-7 md:!h-10"
       : "!w-5 !h-8 md:!w-6 md:!h-9";
     return state.openMelds[idx].map((m, i) => {
-      // 🌟 高亮判斷
       const isMatched = hoveredTileType === m.tile;
       const highlightClass = isMatched
         ? "ring-2 ring-yellow-400 scale-110 shadow-[0_0_10px_rgba(250,204,21,0.6)] !opacity-100 relative z-10"
@@ -283,23 +220,23 @@ export const SimulationMode = ({ tournamentConfig }) => {
     lastDrawnIdx = state.hands[0].lastIndexOf(state.lastDrawnTile);
   }
 
-  // 🌟 Phase 3 修復：為手牌建立穩定的 Key 追蹤器
   const handTileCounts = {};
 
   return (
-    <div className="space-y-4">
+    // 🌟 2. 最外層改為 min-h-full，確保螢幕太小時會出現捲軸，不壓扁羅盤
+    <div className="min-h-full flex flex-col gap-3 md:gap-4 pb-2 relative">
       {state.gameState === "finished" && (
         <SimFinishedView state={state} actions={actions} />
       )}
 
-      {/* 🌟 修改綠色牌桌背景，加入 overflow-hidden 確保羅盤等絕對定位元素不出界，並設定滿版高度 */}
-      <div className="bg-emerald-800 p-4 rounded-xl shadow-[inset_0_0_50px_rgba(0,0,0,0.5)] relative min-h-[600px] flex flex-col justify-between overflow-hidden">
-        {/* 🌟 1. 放入中央羅盤 */}
+      {/* 🌟 3. 綠色桌面：加入 flex-1 填滿高度，並設定 min-h-[550px] 保護羅盤生存空間 */}
+      <div className="bg-emerald-800 p-2 md:p-4 rounded-xl shadow-[inset_0_0_50px_rgba(0,0,0,0.4)] relative flex-1 flex flex-col justify-between overflow-hidden min-h-[550px] md:min-h-[600px]">
+        {/* 🌟 4. 補回消失的中央羅盤 (CentralCompass) */}
         {state.gameState !== "setup" && (
           <CentralCompass state={state} checkDora={checkDora} />
         )}
 
-        {/* 🌟 2. 獨立的 AR 浮空倒數計時器 (右上角) */}
+        {/* 🌟 5. 補回右上角的 AR 浮空倒數計時器 */}
         {state.currentTurn === 0 &&
           state.config.timeLimit > 0 &&
           !state.actionMenu &&
@@ -315,9 +252,9 @@ export const SimulationMode = ({ tournamentConfig }) => {
               ⏱ {state.timeLeft}s
             </div>
           )}
-        {/* Opponents Area */}
-        {/* 修正後：將 overflow-x-auto 改為 visible，確保動畫能超出容器邊界 */}
-        <div className="w-full overflow-visible">
+
+        {/* Opponents Area (加入 shrink-0 固定在上方) */}
+        <div className="w-full overflow-visible shrink-0 pointer-events-auto">
           <div className="flex justify-between items-start min-w-[550px] md:min-w-full pb-2">
             {/* 上家 AI 區域 */}
             <div
@@ -339,75 +276,63 @@ export const SimulationMode = ({ tournamentConfig }) => {
               <div className="flex gap-0.5 mb-1">{renderMelds(2)}</div>
               {state.kitas[2].length > 0 && (
                 <div className="flex gap-0.5 mb-1 pl-1 border-l border-white/20">
-                  {state.kitas[2].map((t, i) => {
-                    const isMatched = hoveredTileType === t;
-                    return (
-                      <Tile
-                        key={`k2-${i}`}
-                        tile={t}
-                        small={true}
-                        isDora={true}
-                        className={`!w-5 !h-8 md:!w-6 md:!h-9 transition-all duration-300 ${
-                          isMatched
-                            ? "ring-2 ring-yellow-400 scale-110 shadow-lg relative z-10 !opacity-100"
-                            : ""
-                        }`}
-                      />
-                    );
-                  })}
-                </div>
-              )}
-              <div className="flex gap-0.5">
-                {state.hands[2].map((_, i) => {
-                  const currentTile =
-                    state.gameState === "finished" ? state.hands[2][i] : null;
-                  const isMatched =
-                    currentTile && hoveredTileType === currentTile;
-                  return (
+                  {state.kitas[2].map((t, i) => (
                     <Tile
-                      key={i}
-                      faceDown={state.gameState === "playing"}
-                      tile={currentTile}
-                      isDora={
-                        state.gameState === "finished"
-                          ? checkDora(state.hands[2][i])
-                          : false
-                      }
+                      key={`k2-${i}`}
+                      tile={t}
                       small={true}
-                      className={`!w-5 !h-8 md:!w-6 md:!h-9 !border-b-2 transition-all duration-300 ${
-                        isMatched
-                          ? "ring-2 ring-yellow-400 scale-110 shadow-lg relative z-10"
+                      isDora={true}
+                      className={`!w-5 !h-8 md:!w-6 md:!h-9 transition-all duration-300 ${
+                        hoveredTileType === t
+                          ? "ring-2 ring-yellow-400 scale-110 shadow-lg relative z-10 !opacity-100"
                           : ""
                       }`}
                     />
-                  );
-                })}
+                  ))}
+                </div>
+              )}
+              <div className="flex gap-0.5">
+                {state.hands[2].map((_, i) => (
+                  <Tile
+                    key={i}
+                    faceDown={state.gameState === "playing"}
+                    tile={
+                      state.gameState === "finished" ? state.hands[2][i] : null
+                    }
+                    isDora={
+                      state.gameState === "finished"
+                        ? checkDora(state.hands[2][i])
+                        : false
+                    }
+                    small={true}
+                    className={`!w-5 !h-8 md:!w-6 md:!h-9 !border-b-2 transition-all duration-300 ${
+                      hoveredTileType === state.hands[2][i]
+                        ? "ring-2 ring-yellow-400 scale-110 shadow-lg relative z-10"
+                        : ""
+                    }`}
+                  />
+                ))}
               </div>
               <div className="grid grid-cols-6 gap-0.5 md:gap-1 mt-2 w-max relative overflow-visible">
-                {state.rivers[2].map((t, i) => {
-                  const isMatched = hoveredTileType === t;
-                  const isJustDiscarded =
-                    state.shakingPlayer === 2 &&
-                    i === state.rivers[2].length - 1;
-                  return (
-                    <Tile
-                      key={`r2-${i}`}
-                      tile={t}
-                      small={true}
-                      isRiver={true}
-                      isDora={checkDora(t)}
-                      className={`!w-6 !h-9 md:!w-7 md:!h-10 !border-b-2 transition-all duration-300 ${
-                        isJustDiscarded
-                          ? "animate-tile-slam !z-50 !opacity-100"
-                          : "z-0"
-                      } ${
-                        isMatched
-                          ? "ring-2 ring-yellow-400 scale-110 shadow-[0_0_10px_rgba(250,204,21,0.6)] !opacity-100 relative z-10"
-                          : "opacity-80"
-                      }`}
-                    />
-                  );
-                })}
+                {state.rivers[2].map((t, i) => (
+                  <Tile
+                    key={`r2-${i}`}
+                    tile={t}
+                    small={true}
+                    isRiver={true}
+                    isDora={checkDora(t)}
+                    className={`!w-6 !h-9 md:!w-7 md:!h-10 !border-b-2 transition-all duration-300 ${
+                      state.shakingPlayer === 2 &&
+                      i === state.rivers[2].length - 1
+                        ? "animate-tile-slam !z-50 !opacity-100"
+                        : "z-0"
+                    } ${
+                      hoveredTileType === t
+                        ? "ring-2 ring-yellow-400 scale-110 shadow-[0_0_10px_rgba(250,204,21,0.6)] !opacity-100 relative z-10"
+                        : "opacity-80"
+                    }`}
+                  />
+                ))}
               </div>
             </div>
 
@@ -432,119 +357,103 @@ export const SimulationMode = ({ tournamentConfig }) => {
               </div>
               {state.kitas[1].length > 0 && (
                 <div className="flex gap-0.5 mb-1 pr-1 border-r border-white/20 justify-end">
-                  {state.kitas[1].map((t, i) => {
-                    const isMatched = hoveredTileType === t;
-                    return (
-                      <Tile
-                        key={`k1-${i}`}
-                        tile={t}
-                        small={true}
-                        isDora={true}
-                        className={`!w-5 !h-8 md:!w-6 md:!h-9 transition-all duration-300 ${
-                          isMatched
-                            ? "ring-2 ring-yellow-400 scale-110 shadow-lg relative z-10 !opacity-100"
-                            : ""
-                        }`}
-                      />
-                    );
-                  })}
-                </div>
-              )}
-              <div className="flex gap-0.5 justify-end">
-                {state.hands[1].map((_, i) => {
-                  const currentTile =
-                    state.gameState === "finished" ? state.hands[1][i] : null;
-                  const isMatched =
-                    currentTile && hoveredTileType === currentTile;
-                  return (
+                  {state.kitas[1].map((t, i) => (
                     <Tile
-                      key={i}
-                      faceDown={state.gameState === "playing"}
-                      tile={currentTile}
-                      isDora={
-                        state.gameState === "finished"
-                          ? checkDora(state.hands[1][i])
-                          : false
-                      }
+                      key={`k1-${i}`}
+                      tile={t}
                       small={true}
-                      className={`!w-5 !h-8 md:!w-6 md:!h-9 !border-b-2 transition-all duration-300 ${
-                        isMatched
-                          ? "ring-2 ring-yellow-400 scale-110 shadow-lg relative z-10"
+                      isDora={true}
+                      className={`!w-5 !h-8 md:!w-6 md:!h-9 transition-all duration-300 ${
+                        hoveredTileType === t
+                          ? "ring-2 ring-yellow-400 scale-110 shadow-lg relative z-10 !opacity-100"
                           : ""
                       }`}
                     />
-                  );
-                })}
+                  ))}
+                </div>
+              )}
+              <div className="flex gap-0.5 justify-end">
+                {state.hands[1].map((_, i) => (
+                  <Tile
+                    key={i}
+                    faceDown={state.gameState === "playing"}
+                    tile={
+                      state.gameState === "finished" ? state.hands[1][i] : null
+                    }
+                    isDora={
+                      state.gameState === "finished"
+                        ? checkDora(state.hands[1][i])
+                        : false
+                    }
+                    small={true}
+                    className={`!w-5 !h-8 md:!w-6 md:!h-9 !border-b-2 transition-all duration-300 ${
+                      hoveredTileType === state.hands[1][i]
+                        ? "ring-2 ring-yellow-400 scale-110 shadow-lg relative z-10"
+                        : ""
+                    }`}
+                  />
+                ))}
               </div>
               <div
                 className="grid grid-cols-6 gap-0.5 md:gap-1 mt-2 w-max relative overflow-visible"
                 dir="ltr"
               >
-                {state.rivers[1].map((t, i) => {
-                  const isMatched = hoveredTileType === t;
-                  const isJustDiscarded =
-                    state.shakingPlayer === 1 &&
-                    i === state.rivers[1].length - 1;
-                  return (
-                    <Tile
-                      key={`r1-${i}`}
-                      tile={t}
-                      // ... 其他屬性
-                      className={`!w-6 !h-9 md:!w-7 md:!h-10 !border-b-2 transition-all duration-300 ${
-                        isJustDiscarded
-                          ? "animate-tile-slam !z-50 !opacity-100"
-                          : "z-0"
-                      } ${
-                        isMatched
-                          ? "ring-2 ring-yellow-400 scale-110 shadow-[0_0_10px_rgba(250,204,21,0.6)] !opacity-100 relative z-10"
-                          : "opacity-80"
-                      }`}
-                    />
-                  );
-                })}
+                {state.rivers[1].map((t, i) => (
+                  <Tile
+                    key={`r1-${i}`}
+                    tile={t}
+                    className={`!w-6 !h-9 md:!w-7 md:!h-10 !border-b-2 transition-all duration-300 ${
+                      state.shakingPlayer === 1 &&
+                      i === state.rivers[1].length - 1
+                        ? "animate-tile-slam !z-50 !opacity-100"
+                        : "z-0"
+                    } ${
+                      hoveredTileType === t
+                        ? "ring-2 ring-yellow-400 scale-110 shadow-[0_0_10px_rgba(250,204,21,0.6)] !opacity-100 relative z-10"
+                        : "opacity-80"
+                    }`}
+                  />
+                ))}
               </div>
             </div>
           </div>
         </div>
 
+        {/* 🌟 選單浮層：不受牌桌高低影響，永遠絕對置中 */}
         {state.gameState === "playing" && state.actionMenu && (
-          <SimActionMenu state={state} actions={actions} />
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-50">
+            <div className="pointer-events-auto">
+              <SimActionMenu state={state} actions={actions} />
+            </div>
+          </div>
         )}
 
-        {/* Player Area (自家河牌區) */}
-        {/* 🌟 佈局大重構：將「河牌區」與「手牌區」打包進同一個底部容器，徹底解決河牌置中飄浮的問題 */}
-        <div className="flex flex-col w-full mt-auto relative z-10 pointer-events-none">
-          {/* Player Area (自家河牌區) */}
-          <div className="flex justify-center mb-2 md:mb-3 pointer-events-auto">
+        {/* 🌟 6. 自家區域：套用 mt-auto，死死釘在牌桌底部不亂飄 */}
+        <div className="w-full flex flex-col mt-auto shrink-0 relative z-10 pointer-events-none">
+          <div className="flex justify-center mb-2 md:mb-4 pointer-events-auto">
             <div className="grid grid-cols-6 gap-0.5 md:gap-1 w-max">
-              {state.rivers[0].map((t, i) => {
-                const isMatched = hoveredTileType === t;
-                const isJustDiscarded =
-                  state.shakingPlayer === 0 && i === state.rivers[0].length - 1;
-                return (
-                  <Tile
-                    key={`r0-${i}`}
-                    tile={t}
-                    small={true}
-                    isRiver={true}
-                    isDora={checkDora(t)}
-                    // 🌟 讓河牌帶有 90% 透明度與模糊。若真的打到第 4 排碰到羅盤，也能微微透出底部資訊
-                    className={`!w-7 !h-10 md:!w-8 md:!h-11 transition-all duration-300 ${
-                      isJustDiscarded
-                        ? "animate-tile-slam !z-50 !opacity-100"
-                        : "z-0"
-                    } ${
-                      isMatched
-                        ? "ring-2 ring-yellow-400 scale-110 shadow-[0_0_10px_rgba(250,204,21,0.6)] relative z-10 !opacity-100"
-                        : "opacity-90 hover:opacity-100"
-                    }`}
-                  />
-                );
-              })}
+              {state.rivers[0].map((t, i) => (
+                <Tile
+                  key={`r0-${i}`}
+                  tile={t}
+                  small={true}
+                  isRiver={true}
+                  isDora={checkDora(t)}
+                  className={`!w-7 !h-10 md:!w-8 md:!h-11 transition-all duration-300 ${
+                    state.shakingPlayer === 0 &&
+                    i === state.rivers[0].length - 1
+                      ? "animate-tile-slam !z-50 !opacity-100"
+                      : "z-0"
+                  } ${
+                    hoveredTileType === t
+                      ? "ring-2 ring-yellow-400 scale-110 shadow-[0_0_10px_rgba(250,204,21,0.6)] relative z-10 !opacity-100"
+                      : "opacity-90"
+                  }`}
+                />
+              ))}
             </div>
           </div>
 
-          {/* 自家手牌區容器 */}
           <div
             className={`relative p-2 pt-5 rounded-xl transition-colors mt-0 pointer-events-auto ${
               state.currentTurn === 0 && state.gameState !== "finished"
@@ -552,7 +461,7 @@ export const SimulationMode = ({ tournamentConfig }) => {
                 : "bg-transparent"
             }`}
           >
-            {/* 左上角標籤 */}
+            {/* 左上角精簡標籤 */}
             <div className="absolute -top-3 left-4 bg-slate-900/90 text-slate-300 text-[10px] md:text-xs px-3 py-1 rounded-full shadow-md flex items-center gap-1 z-30 border border-slate-700">
               <User size={12} /> 自家
               {state.currentTurn === 0 &&
@@ -569,34 +478,29 @@ export const SimulationMode = ({ tournamentConfig }) => {
               )}
             </div>
 
-            {/* 副露區 */}
             {(state.openMelds[0].length > 0 || state.kitas[0].length > 0) && (
               <div className="flex justify-end gap-2 mb-3 pr-2">
                 {state.kitas[0].length > 0 && (
                   <div className="flex gap-0.5 mr-2 self-end border-r border-white/20 pr-3">
-                    {state.kitas[0].map((t, i) => {
-                      const isMatched = hoveredTileType === t;
-                      return (
-                        <Tile
-                          key={`k0-${i}`}
-                          tile={t}
-                          small={true}
-                          isDora={true}
-                          className={`!w-6 !h-9 md:!w-7 md:!h-10 transition-all duration-300 ${
-                            isMatched
-                              ? "ring-2 ring-yellow-400 scale-110 shadow-lg relative z-10 !opacity-100"
-                              : ""
-                          }`}
-                        />
-                      );
-                    })}
+                    {state.kitas[0].map((t, i) => (
+                      <Tile
+                        key={`k0-${i}`}
+                        tile={t}
+                        small={true}
+                        isDora={true}
+                        className={`!w-6 !h-9 md:!w-7 md:!h-10 transition-all duration-300 ${
+                          hoveredTileType === t
+                            ? "ring-2 ring-yellow-400 scale-110 shadow-lg relative z-10 !opacity-100"
+                            : ""
+                        }`}
+                      />
+                    ))}
                   </div>
                 )}
                 {renderMelds(0, true)}
               </div>
             )}
 
-            {/* 聽牌預測 */}
             {activeTenpaiInfo && (
               <div className="flex justify-center mb-3 animate-in fade-in slide-in-from-bottom-2">
                 <div className="bg-emerald-900/80 border border-emerald-500 p-1.5 px-3 rounded-xl shadow-lg flex items-center gap-3">
@@ -621,7 +525,6 @@ export const SimulationMode = ({ tournamentConfig }) => {
               </div>
             )}
 
-            {/* 立直聽牌顯示 */}
             {state.currentWaits && state.currentWaits.length > 0 && (
               <div className="flex justify-center mb-4 relative z-30 animate-in fade-in zoom-in-95 duration-300">
                 <div
@@ -650,9 +553,7 @@ export const SimulationMode = ({ tournamentConfig }) => {
               </div>
             )}
 
-            {/* 外層滾動容器：自家手牌區 */}
             <div className="w-full overflow-x-auto scrollbar-hide -mt-2 mb-1">
-              {/* 🌟 修正：加大 pt-12 (原本是 pt-6)，徹底釋放上方空間，避免權重標籤被 CSS 裁切 */}
               <div className="flex justify-start md:justify-center gap-1 md:gap-2 px-2 pt-12 pb-2 min-w-full w-max">
                 {state.hands[0].map((t, i) => {
                   const currentCount = handTileCounts[t] || 0;
@@ -702,7 +603,6 @@ export const SimulationMode = ({ tournamentConfig }) => {
                       }
                     }
                   }
-                  const isHoverMatched = hoveredTileType === t;
 
                   return (
                     <div key={stableKey} className="relative flex-shrink-0">
@@ -745,7 +645,6 @@ export const SimulationMode = ({ tournamentConfig }) => {
               </div>
             </div>
 
-            {/* 底部按鈕 */}
             <div className="flex justify-between items-center h-10 mt-2">
               <div className="text-[10px] md:text-xs text-emerald-100 bg-black/40 p-1.5 px-3 rounded-lg max-w-[50%] leading-tight border border-white/10 shadow-inner hidden md:block">
                 {state.currentTurn === 0 &&
@@ -809,16 +708,6 @@ export const SimulationMode = ({ tournamentConfig }) => {
         state.currentTurn === 0 &&
         state.gameState === "playing" &&
         state.tacticalInfo && <TacticalAdvisor info={state.tacticalInfo} />}
-
-      {/* 🌟 Phase 1: 畫面劫持特效渲染器 */}
-      {cutInEvent && (
-        <CutInEffect
-          type={cutInEvent.type}
-          text={cutInEvent.text}
-          color={cutInEvent.color}
-          onComplete={() => setCutInEvent(null)}
-        />
-      )}
     </div>
   );
 };

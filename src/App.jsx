@@ -69,7 +69,7 @@ const AppHeader = ({
               三麻進階訓練場
             </span>
             <span className="text-[10px] md:text-xs text-emerald-400 font-bold md:ml-2 tracking-widest hidden sm:inline-block">
-              PRO EDITION
+              by ZoneSky(阿宏)
             </span>
           </div>
         </h1>

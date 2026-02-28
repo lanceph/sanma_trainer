@@ -664,7 +664,7 @@ export const useSimulation = () => {
       ];
       newRivers[actionMenu.sourceIdx].pop();
 
-      // 🌟 新增：開槓翻新寶牌與裏寶牌
+      // 🌟 新增：開槓番新寶牌與裏寶牌
       const newDora = deck.pop();
       const newUra = deck.pop();
       const newCtx = {
@@ -709,7 +709,7 @@ export const useSimulation = () => {
           newMelds[0].push({ type: "ankan", tile: kanTile });
         }
 
-        // 🌟 新增：開槓翻新寶牌與裏寶牌
+        // 🌟 新增：開槓番新寶牌與裏寶牌
         const newDora = deck.pop();
         const newUra = deck.pop();
         const newCtx = {

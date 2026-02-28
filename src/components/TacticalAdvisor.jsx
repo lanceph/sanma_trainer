@@ -195,7 +195,7 @@ const TacticalAdvisor = ({ info }) => {
               <strong className="block text-slate-300 mb-1">自家狀態</strong>
               <span className="font-mono text-emerald-300">
                 {info.isTenpai ? "✅ 已聽牌" : "❌ 未聽牌"} | 預估 {info.estHan}{" "}
-                翻
+                番
               </span>
             </div>
             <div className="bg-black/40 p-2 rounded border border-white/10">
