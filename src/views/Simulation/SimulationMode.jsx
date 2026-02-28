@@ -230,28 +230,11 @@ export const SimulationMode = ({ tournamentConfig }) => {
       )}
 
       {/* 🌟 3. 綠色桌面：加入 flex-1 填滿高度，並設定 min-h-[550px] 保護羅盤生存空間 */}
-      <div className="bg-emerald-800 p-2 md:p-4 rounded-xl shadow-[inset_0_0_50px_rgba(0,0,0,0.4)] relative flex-1 flex flex-col justify-between overflow-hidden min-h-[550px] md:min-h-[600px]">
+      <div className="bg-emerald-800 p-2 md:p-4 pr-12 md:pr-4 rounded-xl shadow-[inset_0_0_50px_rgba(0,0,0,0.4)] relative flex-1 flex flex-col justify-between overflow-hidden min-h-[550px] md:min-h-[600px]">
         {/* 🌟 4. 補回消失的中央羅盤 (CentralCompass) */}
         {state.gameState !== "setup" && (
           <CentralCompass state={state} checkDora={checkDora} />
         )}
-
-        {/* 🌟 5. 補回右上角的 AR 浮空倒數計時器 */}
-        {state.currentTurn === 0 &&
-          state.config.timeLimit > 0 &&
-          !state.actionMenu &&
-          !state.isRiichi[0] &&
-          state.gameState !== "finished" && (
-            <div
-              className={`absolute top-6 right-6 px-4 py-2 rounded-lg font-mono font-black text-2xl z-40 backdrop-blur-sm border-2 transition-colors ${
-                state.timeLeft <= 5
-                  ? "bg-red-900/80 border-red-500 text-red-400 animate-pulse shadow-[0_0_20px_rgba(239,68,68,0.6)]"
-                  : "bg-slate-900/60 border-slate-600 text-yellow-400"
-              }`}
-            >
-              ⏱ {state.timeLeft}s
-            </div>
-          )}
 
         {/* Opponents Area (加入 shrink-0 固定在上方) */}
         <div className="w-full overflow-visible shrink-0 pointer-events-auto">
@@ -265,8 +248,11 @@ export const SimulationMode = ({ tournamentConfig }) => {
               }`}
             >
               <div className="text-white text-xs font-bold mb-1 flex items-center gap-2">
-                <Cpu size={12} />
-                上家 ({TILE_LABELS[state.context.ai2Wind]})
+                {/* 🌟 修正：改為獨立、顯眼的風位勳章 */}
+                <span className="bg-red-600 text-white px-2 py-0.5 rounded shadow-sm text-[11px] font-black border border-red-400">
+                  {TILE_LABELS[state.context.ai2Wind]}
+                </span>
+                <span className="opacity-90">上家 AI</span>
                 {state.isRiichi[2] && (
                   <span className="bg-red-600 text-white text-[10px] px-2 py-0.5 rounded shadow-sm animate-pulse">
                     立直
@@ -350,7 +336,11 @@ export const SimulationMode = ({ tournamentConfig }) => {
                     立直
                   </span>
                 )}
-                下家 ({TILE_LABELS[state.context.ai1Wind]})<Cpu size={12} />
+                <span className="opacity-90">下家 AI</span>
+                {/* 🌟 修正：改為獨立、顯眼的風位勳章 */}
+                <span className="bg-blue-600 text-white px-2 py-0.5 rounded shadow-sm text-[11px] font-black border border-blue-400">
+                  {TILE_LABELS[state.context.ai1Wind]}
+                </span>
               </div>
               <div className="flex gap-0.5 mb-1 justify-end">
                 {renderMelds(1)}
@@ -464,6 +454,20 @@ export const SimulationMode = ({ tournamentConfig }) => {
             {/* 左上角精簡標籤 */}
             <div className="absolute -top-3 left-4 bg-slate-900/90 text-slate-300 text-[10px] md:text-xs px-3 py-1 rounded-full shadow-md flex items-center gap-1 z-30 border border-slate-700">
               <User size={12} /> 自家
+              {/* 🌟 移至此處的計時器 */}
+              {state.currentTurn === 0 &&
+                state.config.timeLimit > 0 &&
+                !state.actionMenu && (
+                  <div
+                    className={`ml-2 px-2 py-0.5 rounded font-mono font-black text-sm border-l border-slate-700 ${
+                      state.timeLeft <= 5
+                        ? "text-red-500 animate-pulse"
+                        : "text-yellow-400"
+                    }`}
+                  >
+                    ⏱ {state.timeLeft}s
+                  </div>
+                )}
               {state.currentTurn === 0 &&
                 !state.actionMenu &&
                 state.gameState !== "finished" && (
