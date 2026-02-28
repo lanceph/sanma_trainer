@@ -934,20 +934,49 @@ export const useSimulation = () => {
   ]);
 
   // 🌟 新增：將即時狀態同步至 Firebase
+  // ==========================================
+  // 🌟 1. 同步時間與基本狀態 (每秒觸發，不帶牌桌資料以節省流量)
+  useEffect(() => {
+    if (config.tournamentConfig?.tid && gameState === "playing") {
+      const { tid, myPlayerId } = config.tournamentConfig;
+      const turn = rivers[0].length + 1;
+      const action = isRiichi[0] ? "riichi" : "playing";
+      updateLiveState(tid, myPlayerId, turn, action, timeLeft);
+    }
+  }, [timeLeft, gameState, config.tournamentConfig]); // 移除牌桌依賴，純看時間
+
+  // 🌟 2. 同步完整牌桌狀態 (只有當牌池、手牌或鳴牌改變時才觸發)
   useEffect(() => {
     if (config.tournamentConfig?.tid) {
       const { tid, myPlayerId } = config.tournamentConfig;
       if (gameState === "playing") {
-        // 玩家目前的巡目 = 捨牌堆的數量 + 1
         const turn = rivers[0].length + 1;
         const action = isRiichi[0] ? "riichi" : "playing";
-        updateLiveState(tid, myPlayerId, turn, action, timeLeft);
+
+        // 打包玩家目前的畫面狀態 (防作弊：只傳自己手牌，不傳 AI 手牌)
+        const boardState = {
+          hands: hands[0] || [],
+          rivers: rivers,
+          openMelds: openMelds,
+          kitas: kitas,
+          isRiichi: isRiichi,
+        };
+
+        updateLiveState(tid, myPlayerId, turn, action, timeLeft, boardState);
       } else if (gameState === "finished") {
-        // 遊戲結束時，將狀態設為 finished
         updateLiveState(tid, myPlayerId, rivers[0].length, "finished", 0);
       }
     }
-  }, [gameState, rivers, isRiichi, timeLeft, config.tournamentConfig]);
+  }, [
+    rivers,
+    openMelds,
+    kitas,
+    hands,
+    isRiichi,
+    gameState,
+    config.tournamentConfig,
+  ]);
+  // ==========================================
 
   // 🌟 新增：由按鈕觸發的統一結算推進邏輯
   const proceedToNextPhase = () => {

@@ -1,7 +1,11 @@
-import React from "react";
-import { Swords, Clock, Zap, User, UserX } from "lucide-react";
+import React, { useState } from "react";
+import { Swords, Clock, Zap, User, UserX, Eye } from "lucide-react"; // 🌟 引入 Eye
+import { SpectatorBoard } from "../views/Tournament/SpectatorBoard"; // 🌟 引入觀戰板
 
 export default function PKRadar({ tournamentData, myPlayerId }) {
+  // 🌟 新增：記錄目前正在觀戰誰的 ID
+  const [spectatingId, setSpectatingId] = useState(null);
+
   if (!tournamentData || !tournamentData.players) return null;
 
   const players = Object.entries(tournamentData.players)
@@ -36,12 +40,11 @@ export default function PKRadar({ tournamentData, myPlayerId }) {
           };
           const isRiichi = live.action === "riichi";
           const isFinished = live.action === "finished";
-          // 🌟 2. 新增棄權判斷 (不管是 liveState 還是 progress 只要是 abandoned 就當作斷線)
           const isAbandoned =
             live.action === "abandoned" || p.progress === "abandoned";
+          const hasBoardState = !!live.boardState; // 🌟 確認 Firebase 有收到他的牌桌
 
           return (
-            // 🌟 3. 如果斷線了，整個區塊加上半透明與灰階效果 (opacity-50 grayscale)
             <div
               key={p.id}
               className={`p-2 flex flex-col gap-1 relative ${
@@ -58,22 +61,33 @@ export default function PKRadar({ tournamentData, myPlayerId }) {
                       : "text-slate-300"
                   }`}
                 >
-                  {/* 🌟 4. 斷線換成 UserX 圖示 */}
                   {isAbandoned ? <UserX size={12} /> : <User size={12} />}
                   {p.name}
                 </div>
 
-                <div className="text-slate-400 text-[10px]">
-                  {/* 🌟 5. 狀態文字顯示 */}
-                  {isAbandoned
-                    ? "已棄權 (斷線)"
-                    : isFinished
-                    ? "已完賽"
-                    : `第 ${live.turn} 巡`}
+                {/* 🌟 修改：將狀態文字與觀戰按鈕放在一起 */}
+                <div className="flex items-center gap-2">
+                  <div className="text-slate-400 text-[10px]">
+                    {isAbandoned
+                      ? "已棄權 (斷線)"
+                      : isFinished
+                      ? "已完賽"
+                      : `第 ${live.turn} 巡`}
+                  </div>
+
+                  {/* 🌟 觀戰按鈕：只有在還沒打完且有資料時才顯示 */}
+                  {hasBoardState && !isFinished && !isAbandoned && (
+                    <button
+                      onClick={() => setSpectatingId(p.id)}
+                      className="p-1 bg-slate-700 hover:bg-emerald-500 text-slate-300 hover:text-white rounded transition-colors shadow-sm"
+                      title="點擊觀戰"
+                    >
+                      <Eye size={12} />
+                    </button>
+                  )}
                 </div>
               </div>
 
-              {/* 🌟 6. 只有在「沒完賽」且「沒棄權」的情況下，才顯示思考中與時間 */}
               {!isFinished && !isAbandoned && (
                 <div className="flex items-center justify-between mt-1">
                   <div className="flex items-center gap-1">
@@ -105,6 +119,18 @@ export default function PKRadar({ tournamentData, myPlayerId }) {
           );
         })}
       </div>
+
+      {/* 🌟 如果有點擊某人，就把他的牌桌資料塞給 SpectatorBoard 渲染出來 */}
+      {spectatingId &&
+        tournamentData.players[spectatingId]?.liveState?.boardState && (
+          <SpectatorBoard
+            playerName={tournamentData.players[spectatingId].name}
+            boardState={
+              tournamentData.players[spectatingId].liveState.boardState
+            }
+            onClose={() => setSpectatingId(null)}
+          />
+        )}
     </div>
   );
 }

@@ -1,6 +1,7 @@
 // src/services/tournamentService.js
+// 🌟 確保從我們自己的 utils/firebase 正確引入 db 與其他方法
 import { db, ref, set, get, update, onDisconnect } from "../utils/firebase";
-import { generateRoomSeed } from "../utils/rng"; // 使用我們 Phase 1 寫好的亂數產生器
+import { generateRoomSeed } from "../utils/rng"; // 使用亂數產生器
 
 // 1. 建立錦標賽房間
 export const createTournament = async (hostName, totalRounds = 3) => {
@@ -24,7 +25,7 @@ export const createTournament = async (hostName, totalRounds = 3) => {
     },
   });
 
-  // 🌟 新增：房主註冊斷線自動棄權
+  // 房主註冊斷線自動棄權
   const myPlayerRef = ref(db, `tournaments/${tid}/players/${hostId}`);
   onDisconnect(myPlayerRef).update({
     progress: "abandoned",
@@ -43,7 +44,7 @@ export const joinTournament = async (tid, playerName) => {
 
   const data = snapshot.val();
 
-  // 🌟 新增：過期檢查 (24 小時 = 24 * 60 * 60 * 1000 毫秒)
+  // 過期檢查 (24 小時 = 24 * 60 * 60 * 1000 毫秒)
   const ONE_DAY = 24 * 60 * 60 * 1000;
   if (data.state.createdAt && Date.now() - data.state.createdAt > ONE_DAY) {
     throw new Error("此賽事房間已過期 (超過 24 小時)！請建立新賽事。");
@@ -69,7 +70,7 @@ export const joinTournament = async (tid, playerName) => {
     },
   });
 
-  // 🌟 新增：加入者註冊斷線自動棄權
+  // 加入者註冊斷線自動棄權
   const myPlayerRef = ref(db, `tournaments/${tid}/players/${newPlayerId}`);
   onDisconnect(myPlayerRef).update({
     progress: "abandoned",
@@ -81,26 +82,39 @@ export const joinTournament = async (tid, playerName) => {
 
 // 3. 房主開始錦標賽
 export const startTournament = async (tid) => {
-  // 將房間狀態從 'lobby' 改為 'playing'
   await update(ref(db, `tournaments/${tid}/state`), {
     status: "playing",
   });
 };
 
-// 4. 更新玩家即時狀態 (給 PK Radar 用)
+// 4. 更新玩家即時狀態 (給 PK Radar 與觀戰系統用)
+// 🌟 接收觀戰用的 boardState 狀態
 export const updateLiveState = async (
   tid,
   playerId,
   turn,
   action,
-  timeLeft = 15
+  timeLeft = 15,
+  boardState = null
 ) => {
   if (!tid || !playerId) return;
-  await update(ref(db, `tournaments/${tid}/players/${playerId}/liveState`), {
+
+  const payload = {
     turn,
     action, // 例如: 'playing', 'riichi', 'finished'
     timeLeft,
-  });
+  };
+
+  // 🌟 如果有傳入牌桌狀態，就一併打包更新上 Firebase
+  if (boardState) {
+    payload.boardState = boardState;
+  }
+
+  // 這裡正確使用 db 變數
+  await update(
+    ref(db, `tournaments/${tid}/players/${playerId}/liveState`),
+    payload
+  );
 };
 
 // 5. 上傳單局結算分數
